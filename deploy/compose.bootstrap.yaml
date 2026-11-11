@@ -1,0 +1,12 @@
+# Explicit one-time command; these secrets are not in the normal API environment.
+services:
+  api:
+    entrypoint: ['node', 'dist/bootstrap-admins.js']
+    command: []
+    environment:
+      BOOTSTRAP_ADMIN_1_LOGIN: ${BOOTSTRAP_ADMIN_1_LOGIN:?Set BOOTSTRAP_ADMIN_1_LOGIN}
+      BOOTSTRAP_ADMIN_1_NAME: ${BOOTSTRAP_ADMIN_1_NAME:?Set BOOTSTRAP_ADMIN_1_NAME}
+      BOOTSTRAP_ADMIN_1_PASSWORD: ${BOOTSTRAP_ADMIN_1_PASSWORD:-}
+      BOOTSTRAP_ADMIN_2_LOGIN: ${BOOTSTRAP_ADMIN_2_LOGIN:?Set BOOTSTRAP_ADMIN_2_LOGIN}
+      BOOTSTRAP_ADMIN_2_NAME: ${BOOTSTRAP_ADMIN_2_NAME:?Set BOOTSTRAP_ADMIN_2_NAME}
+      BOOTSTRAP_ADMIN_2_PASSWORD: ${BOOTSTRAP_ADMIN_2_PASSWORD:-}

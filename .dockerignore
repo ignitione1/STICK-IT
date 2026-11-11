@@ -1,0 +1,8 @@
+# Frontend image receives only the prebuilt release and its Nginx configuration.
+**
+!dist/
+!dist/**
+!deploy/
+!deploy/web.Dockerfile
+!deploy/nginx/
+!deploy/nginx/nginx.conf

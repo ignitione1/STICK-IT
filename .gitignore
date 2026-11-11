@@ -1,0 +1,42 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+*.tsbuildinfo
+.local/
+.env
+.env.*
+!.env.example
+backups/
+uploads/
+server/uploads/
+*.images.tar
+*.images.tar.gz
+
+# Local credentials, databases, logs, backups and editor state
+*.log
+*.pem
+*.key
+*.p12
+*.pfx
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.sql.gz
+*.sql.backup
+*.bak
+*.backup
+.envrc
+.npmrc
+pgdata/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+codex-history*
+
+# Original design references; not needed to run or build the application
+/code.html
+/Стикерборд IT-отдела_ рабочие записки и обращения.png
+/public/assets/profile.jpg

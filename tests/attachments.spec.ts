@@ -1,0 +1,112 @@
+import { readFile } from 'node:fs/promises';
+import { test, expect, browserFixture } from './fixtures';
+
+test('вложения: выбор, просмотр изображения, скачивание документов и сохранение в архиве', async ({ page, browser }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Новый стикер', exact: true }).click();
+  await page.getByLabel('Текст записки', { exact: true }).fill('Файлы для коллег');
+  const image = Buffer.from(await page.evaluate(() => {
+    const canvas = document.createElement('canvas'); canvas.width = 320; canvas.height = 180;
+    const context = canvas.getContext('2d')!; context.fillStyle = '#cbddca'; context.fillRect(0, 0, 320, 180);
+    context.fillStyle = '#244233'; context.font = '24px sans-serif'; context.fillText('Стикерборд', 75, 95);
+    return canvas.toDataURL('image/png').split(',')[1];
+  }), 'base64');
+  const documentBytes = Buffer.from('# План\nОбсуждение нового проекта', 'utf8');
+  await page.getByLabel('Прикрепить изображения').setInputFiles({ name: 'Проект.png', mimeType: 'image/png', buffer: image });
+  await expect(page.locator('.selected-attachments li')).toHaveCount(1);
+  await page.getByLabel('Прикрепить изображения').setInputFiles({ name: 'Копия проекта.png', mimeType: 'image/png', buffer: image });
+  await expect(page.getByRole('alert')).toContainText('Повторные файлы не добавлены');
+  await expect(page.locator('.selected-attachments li')).toHaveCount(1);
+  await page.getByLabel('Прикрепить файлы').setInputFiles([
+    { name: 'План.md', mimeType: 'text/markdown', buffer: documentBytes },
+    { name: 'Лишний.txt', mimeType: 'text/plain', buffer: Buffer.from('Удалить до отправки') },
+  ]);
+  await page.getByRole('button', { name: 'Убрать вложение Лишний.txt', exact: true }).click();
+  await expect(page.locator('.selected-attachments li')).toHaveCount(2);
+  await page.screenshot({ path: '.local/attachment-composer-desktop.png', animations: 'disabled' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: '.local/attachment-composer-mobile.png', animations: 'disabled' });
+  await page.getByRole('button', { name: 'Закрепить', exact: true }).click();
+  const note = page.locator('.sticky-note').filter({ hasText: 'Файлы для коллег' });
+  await expect(note.locator('.attachment')).toHaveCount(2);
+  await note.getByRole('button', { name: /Проект.png/ }).click();
+  const modal = page.getByRole('dialog');
+  const preview = modal.getByRole('img', { name: 'Проект.png', exact: true });
+  await expect(preview).toBeVisible();
+  await expect.poll(() => preview.evaluate(element => (element as HTMLImageElement).naturalWidth)).toBe(320);
+  await page.screenshot({ path: '.local/attachment-preview-mobile.png', animations: 'disabled' });
+  await page.setViewportSize({ width: 1242, height: 900 });
+  await page.screenshot({ path: '.local/attachment-preview-desktop.png', animations: 'disabled' });
+  const imageDownload = page.waitForEvent('download');
+  await modal.getByRole('link', { name: 'Скачать', exact: true }).click();
+  const downloadedImage = await imageDownload;
+  expect(downloadedImage.suggestedFilename()).toBe('Проект.png');
+  expect(await readFile((await downloadedImage.path())!)).toEqual(image);
+  await modal.getByRole('button', { name: 'Закрыть', exact: true }).click();
+  const documentDownload = page.waitForEvent('download');
+  await note.getByRole('button', { name: /План.md/ }).click();
+  const downloadedDocument = await documentDownload;
+  expect(downloadedDocument.suggestedFilename()).toBe('План.md');
+  expect(await readFile((await downloadedDocument.path())!)).toEqual(documentBytes);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.reload();
+  await expect(note.locator('.attachment')).toHaveCount(2);
+  await note.getByRole('button', { name: 'Изменить', exact: true }).click();
+  await expect(page.locator('.selected-attachments li')).toHaveCount(2);
+  await page.getByLabel('Прикрепить файлы').setInputFiles({ name: 'Копия плана.md', mimeType: 'text/markdown', buffer: documentBytes });
+  await expect(page.getByRole('alert')).toContainText('Повторные файлы не добавлены');
+  await expect(page.locator('.selected-attachments li')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Убрать вложение План.md', exact: true }).click();
+  await page.getByLabel('Прикрепить файлы').setInputFiles({ name: 'Новый план.pdf', mimeType: 'application/pdf', buffer: Buffer.from('New document contents') });
+  await expect(page.locator('.selected-attachments li')).toHaveCount(2);
+  await page.screenshot({ path: '.local/attachment-editor-desktop.png', animations: 'disabled' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: '.local/attachment-editor-mobile.png', animations: 'disabled' });
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
+  await expect(note.getByRole('button', { name: /Новый план.pdf/ })).toBeVisible();
+  await expect(note.getByRole('button', { name: /План.md/ })).toHaveCount(0);
+  await page.setViewportSize({ width: 1242, height: 900 });
+  await page.reload();
+  await note.getByRole('button', { name: 'Изменить', exact: true }).click();
+  await page.getByRole('button', { name: 'Убрать вложение Новый план.pdf', exact: true }).click();
+  await page.getByLabel('Прикрепить файлы').setInputFiles({ name: 'План.md', mimeType: 'text/markdown', buffer: documentBytes });
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
+  await expect(note.getByRole('button', { name: /План.md/ })).toBeVisible();
+  await note.getByRole('button', { name: 'Изменить', exact: true }).click();
+  await page.getByRole('button', { name: 'Убрать вложение План.md', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Закрыть', exact: true }).click();
+  await expect(note.locator('.attachment')).toHaveCount(2); // Cancelling keeps the files.
+  const other = await browser.newContext({ extraHTTPHeaders: { 'x-forwarded-for': '10.100.99.55' } });
+  try {
+    const response = await other.request.post('http://127.0.0.1:5174/api/auth/login', {
+      headers: { origin: 'http://127.0.0.1:5174', 'x-stickerboard-request': '1' }, data: { login: 'anna', password: browserFixture.password },
+    });
+    expect(response.ok()).toBe(true);
+    const colleague = await other.newPage();
+    await colleague.goto('http://127.0.0.1:5174');
+    await colleague.getByRole('button', { name: 'IT-отдел SYS', exact: true }).click();
+    const shared = colleague.locator('.sticky-note').filter({ hasText: 'Файлы для коллег' });
+    await expect(shared.getByRole('button', { name: 'Изменить', exact: true })).toHaveCount(0);
+    await shared.getByRole('button', { name: /Проект.png/ }).click();
+    await expect(colleague.getByRole('img', { name: 'Проект.png', exact: true })).toBeVisible();
+  } finally { await other.close(); }
+  page.once('dialog', dialog => { void dialog.accept(); });
+  await note.getByRole('button', { name: 'В архив', exact: true }).click();
+  await expect(note).toHaveCount(0);
+  await page.getByRole('button', { name: 'Архив', exact: true }).click();
+  await page.getByRole('button', { name: 'Открыть архив: IT-отдел', exact: true }).click();
+  const archive = page.locator('.sticky-note').filter({ hasText: 'Файлы для коллег' });
+  await expect(archive.locator('.attachment')).toHaveCount(2);
+  const archivedDownload = page.waitForEvent('download');
+  await archive.getByRole('button', { name: /План.md/ }).click();
+  expect((await archivedDownload).suggestedFilename()).toBe('План.md');
+  await archive.getByRole('button', { name: 'Вернуть на доску', exact: true }).click();
+  await page.getByRole('button', { name: 'IT-отдел SYS', exact: true }).click();
+  await note.getByRole('button', { name: 'Изменить', exact: true }).click();
+  await page.getByRole('button', { name: 'Убрать вложение Проект.png', exact: true }).click();
+  await page.getByRole('button', { name: 'Убрать вложение План.md', exact: true }).click();
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
+  await expect(note.locator('.attachment')).toHaveCount(0);
+  await page.reload();
+  await expect(note.locator('.attachment')).toHaveCount(0);
+});

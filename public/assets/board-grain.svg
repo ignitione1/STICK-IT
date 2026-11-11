@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320">
+  <filter id="board"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="4" stitchTiles="stitch" seed="7"/><feDiffuseLighting surfaceScale=".65" lighting-color="#fff5e8" diffuseConstant=".9"><feDistantLight azimuth="235" elevation="55"/></feDiffuseLighting></filter>
+  <rect width="100%" height="100%" filter="url(#board)" opacity=".22"/>
+</svg>

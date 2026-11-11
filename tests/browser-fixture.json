@@ -1,0 +1,143 @@
+{
+  "password": "Browser-test-password-2026",
+  "departments": [
+    {
+      "legacyId": "it",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "boardId": "00000000-0000-4000-8000-000000000101",
+      "name": "IT-отдел",
+      "code": "sys",
+      "color": "#2760db"
+    },
+    {
+      "legacyId": "accounting",
+      "id": "00000000-0000-4000-8000-000000000002",
+      "boardId": "00000000-0000-4000-8000-000000000102",
+      "name": "Бухгалтерия",
+      "code": "fin",
+      "color": "#e49b00"
+    },
+    {
+      "legacyId": "legal",
+      "id": "00000000-0000-4000-8000-000000000003",
+      "boardId": "00000000-0000-4000-8000-000000000103",
+      "name": "Юридический отдел",
+      "code": "law",
+      "color": "#9463db"
+    },
+    {
+      "legacyId": "hr",
+      "id": "00000000-0000-4000-8000-000000000004",
+      "boardId": "00000000-0000-4000-8000-000000000104",
+      "name": "Отдел кадров",
+      "code": "hr",
+      "color": "#00a87b"
+    },
+    {
+      "legacyId": "security",
+      "id": "00000000-0000-4000-8000-000000000005",
+      "boardId": "00000000-0000-4000-8000-000000000105",
+      "name": "Безопасность",
+      "code": "sec",
+      "color": "#da3539"
+    },
+    {
+      "legacyId": "records",
+      "id": "00000000-0000-4000-8000-000000000006",
+      "boardId": "00000000-0000-4000-8000-000000000106",
+      "name": "Документооборот",
+      "code": "doc",
+      "color": "#009d98"
+    },
+    {
+      "legacyId": "general",
+      "id": "00000000-0000-4000-8000-000000000007",
+      "boardId": "00000000-0000-4000-8000-000000000107",
+      "name": "Общая доска",
+      "code": "all",
+      "color": "#aeb3be"
+    }
+  ],
+  "employees": [
+    {
+      "legacyId": "anna",
+      "id": "00000000-0000-4000-8000-000000000201",
+      "login": "anna",
+      "displayName": "Анна",
+      "departmentId": "00000000-0000-4000-8000-000000000002",
+      "paperStyle": "yellow",
+      "role": "user",
+      "avatarUrl": "/assets/anna.jpg"
+    },
+    {
+      "legacyId": "denis",
+      "id": "00000000-0000-4000-8000-000000000202",
+      "login": "denis",
+      "displayName": "Денис",
+      "departmentId": "00000000-0000-4000-8000-000000000001",
+      "paperStyle": "blue",
+      "role": "user",
+      "avatarUrl": "/assets/denis.jpg"
+    },
+    {
+      "legacyId": "elena",
+      "id": "00000000-0000-4000-8000-000000000203",
+      "login": "elena",
+      "displayName": "Елена",
+      "departmentId": "00000000-0000-4000-8000-000000000003",
+      "paperStyle": "mint",
+      "role": "user",
+      "avatarUrl": "/assets/elena.jpg"
+    },
+    {
+      "legacyId": "maxim",
+      "id": "00000000-0000-4000-8000-000000000204",
+      "login": "maxim",
+      "displayName": "Максим",
+      "departmentId": "00000000-0000-4000-8000-000000000005",
+      "paperStyle": "cream",
+      "role": "user",
+      "avatarUrl": "/assets/maxim.jpg"
+    },
+    {
+      "legacyId": "olga",
+      "id": "00000000-0000-4000-8000-000000000205",
+      "login": "olga",
+      "displayName": "Ольга",
+      "departmentId": "00000000-0000-4000-8000-000000000004",
+      "paperStyle": "pink",
+      "role": "user",
+      "avatarUrl": "/assets/olga.jpg"
+    },
+    {
+      "legacyId": "maria",
+      "id": "00000000-0000-4000-8000-000000000206",
+      "login": "maria",
+      "displayName": "Мария",
+      "departmentId": "00000000-0000-4000-8000-000000000006",
+      "paperStyle": "blue",
+      "role": "user",
+      "avatarUrl": "/assets/maria.jpg"
+    },
+    {
+      "legacyId": "victor",
+      "id": "00000000-0000-4000-8000-000000000207",
+      "login": "victor",
+      "displayName": "Виктор",
+      "departmentId": "00000000-0000-4000-8000-000000000002",
+      "paperStyle": "cream",
+      "role": "user",
+      "avatarUrl": "/assets/victor.jpg"
+    },
+    {
+      "legacyId": "konstantin",
+      "id": "00000000-0000-4000-8000-000000000208",
+      "login": "konstantin",
+      "displayName": "Константин",
+      "departmentId": "00000000-0000-4000-8000-000000000001",
+      "paperStyle": "yellow",
+      "role": "admin",
+      "avatarUrl": "/assets/konstantin.jpg"
+    }
+  ]
+}
