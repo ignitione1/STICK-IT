@@ -97,10 +97,14 @@ test('записки: адресаты, права, конфликты верс�
     assert.deepEqual(chain.filter(note => note.parentId).map(note => note.replyOrder), [0, 1]);
     assert.ok(chain.filter(note => note.parentId).every(note => note.x === 26 && note.y === 0));
     assert.equal(chain.find(note => note.id === id)!.x, 1500);
-    assert.equal((await request(c, 'PATCH', '/stickers/' + id + '/archive', { archived: true, revision: 4 })).statusCode, 403);
+    assert.equal((await list(c)).find(note => note.id === id)!.canArchive, true);
+    assert.equal((await list(b)).find(note => note.id === id)!.canArchive, false);
+    assert.equal((await request(b, 'PATCH', '/stickers/' + id + '/archive', { archived: true, revision: 4 })).statusCode, 403);
+    assert.equal((await request(c, 'PATCH', '/stickers/' + id + '/archive', { archived: true, revision: 3 })).statusCode, 409);
     assert.equal((await request(b, 'PATCH', '/stickers/' + replyId + '/archive', { archived: true, revision: 0 })).statusCode, 200);
-    assert.equal((await request(a, 'PATCH', '/stickers/' + id + '/archive', { archived: true, revision: 4 })).statusCode, 200);
+    assert.equal((await request(c, 'PATCH', '/stickers/' + id + '/archive', { archived: true, revision: 4 })).statusCode, 200);
     assert.ok((await list()).every(note => note.isArchived));
+    assert.equal((await request(c, 'PATCH', '/stickers/' + id + '/archive', { archived: false, revision: 5 })).statusCode, 403);
     assert.equal((await request(b, 'PATCH', '/stickers/' + replyId + '/archive', { archived: false, revision: 1 })).statusCode, 409);
     assert.equal((await request(a, 'PATCH', '/stickers/' + id + '/archive', { archived: false, revision: 5 })).statusCode, 200);
     assert.equal((await list()).filter(note => note.isArchived).length, 1);

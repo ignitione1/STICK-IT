@@ -25,14 +25,14 @@ export const presets: Record<PresetId, { name: string; fastening: 'pin' | 'clip'
 };
 
 export const employees: Record<string, Employee> = {
-  anna: { id: 'anna', name: 'Анна', label: 'Анна (Бухгалтерия)', department: 'accounting', avatar: '/assets/anna.jpg', preset: 'yellow' },
-  denis: { id: 'denis', name: 'Денис', label: 'Денис (IT-отдел)', department: 'it', avatar: '/assets/denis.jpg', preset: 'blue' },
-  elena: { id: 'elena', name: 'Елена', label: 'Елена (Юристы)', department: 'legal', avatar: '/assets/elena.jpg', preset: 'mint' },
-  maxim: { id: 'maxim', name: 'Максим', label: 'Максим (Безопасность)', department: 'security', avatar: '/assets/maxim.jpg', preset: 'cream' },
-  olga: { id: 'olga', name: 'Ольга', label: 'Ольга (Кадры)', department: 'hr', avatar: '/assets/olga.jpg', preset: 'pink' },
-  maria: { id: 'maria', name: 'Мария', label: 'Мария (Канцелярия)', department: 'records', avatar: '/assets/maria.jpg', preset: 'blue' },
-  victor: { id: 'victor', name: 'Виктор', label: 'Виктор (Бухгалтерия)', department: 'accounting', avatar: '/assets/victor.jpg', preset: 'cream' },
-  konstantin: { id: 'konstantin', name: 'Константин', label: 'Константин (IT-админ)', department: 'it', avatar: '/assets/konstantin.jpg', preset: 'yellow' },
+  anna: { id: 'anna', name: 'Анна', label: 'Анна (Бухгалтерия)', department: 'accounting', avatar: '/assets/avatars/avatar-7.svg', preset: 'yellow' },
+  denis: { id: 'denis', name: 'Денис', label: 'Денис (IT-отдел)', department: 'it', avatar: '/assets/avatars/avatar-1.svg', preset: 'blue' },
+  elena: { id: 'elena', name: 'Елена', label: 'Елена (Юристы)', department: 'legal', avatar: '/assets/avatars/avatar-8.svg', preset: 'mint' },
+  maxim: { id: 'maxim', name: 'Максим', label: 'Максим (Безопасность)', department: 'security', avatar: '/assets/avatars/avatar-2.svg', preset: 'cream' },
+  olga: { id: 'olga', name: 'Ольга', label: 'Ольга (Кадры)', department: 'hr', avatar: '/assets/avatars/avatar-9.svg', preset: 'pink' },
+  maria: { id: 'maria', name: 'Мария', label: 'Мария (Канцелярия)', department: 'records', avatar: '/assets/avatars/avatar-10.svg', preset: 'blue' },
+  victor: { id: 'victor', name: 'Виктор', label: 'Виктор (Бухгалтерия)', department: 'accounting', avatar: '/assets/avatars/avatar-3.svg', preset: 'cream' },
+  konstantin: { id: 'konstantin', name: 'Константин', label: 'Константин (IT-админ)', department: 'it', avatar: '/assets/avatars/avatar-4.svg', preset: 'yellow' },
 };
 
 export const currentEmployee = employees.konstantin;

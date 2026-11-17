@@ -15,6 +15,32 @@ test('композиция и отметки сохраняются на сер�
   expect(await page.evaluate(() => localStorage.getItem('stickerboard:v1'))).toBeNull();
 });
 
+test('кнопки управления и доступные отметки не тускнеют во время сохранения', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Новый стикер' }).click();
+  await page.getByLabel('Текст записки').fill('Проверка отображения кнопок');
+  await page.getByRole('button', { name: 'Закрепить', exact: true }).click();
+  const note = page.locator('.sticky-note').filter({ hasText: 'Проверка отображения кнопок' });
+  await expect(note.getByLabel('Готово')).toBeDisabled();
+  await expect(note.getByLabel('Готово')).toHaveCSS('opacity', '0.45');
+  await page.route('**/api/stickers/*/marks', async route => {
+    await new Promise(resolve => setTimeout(resolve, 400));
+    await route.continue();
+  });
+  for (const label of ['Прочитано', 'Готово']) {
+    await note.getByLabel(label).check();
+    await expect(note.getByLabel('Прочитано')).toBeDisabled();
+    await expect(note.getByLabel('Прочитано')).toHaveCSS('opacity', '1');
+    await expect(note.getByLabel('Готово')).toHaveCSS('opacity', '1');
+    for (const name of ['Изменить', 'В архив']) {
+      const button = note.getByRole('button', { name, exact: true });
+      await expect(button).toBeDisabled();
+      await expect(button).toHaveCSS('opacity', '1');
+    }
+    await expect(note.getByRole('button', { name: 'Изменить', exact: true })).toBeEnabled();
+  }
+});
+
 test('дата и время создания видны на записке и ответе после перезагрузки', async ({ page }) => {
   await page.goto('/');
   const notes = await serverNotes(page);

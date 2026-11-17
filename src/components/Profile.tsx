@@ -9,11 +9,12 @@ import PaperSurface from './PaperSurface';
 import Fastening from './Fastening';
 import { getPaperAppearance } from '../paper';
 import { prepareAvatarPhoto } from '../photo';
+import { resolveAvatar } from '../avatar';
 
 export default function Profile({ account, catalog, onClose, onSaved }: {
   account: Account; catalog: Catalog; onClose: () => void; onSaved: (account: Account) => Promise<void>;
 }) {
-  const initialAvatar = catalog.avatars.find(avatar => avatar.url === account.avatarUrl);
+  const initialAvatar = catalog.avatars.find(avatar => avatar.url === resolveAvatar(account.avatarUrl));
   const [avatarId, setAvatarId] = useState<string | undefined>(initialAvatar?.id);
   const [photo, setPhoto] = useState<string | undefined>(undefined);
   const [gender, setGender] = useState<'male' | 'female'>(initialAvatar?.gender ?? 'male');
@@ -24,7 +25,7 @@ export default function Profile({ account, catalog, onClose, onSaved }: {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const paper = getPaperAppearance(100);
-  const avatarUrl = photo ?? catalog.avatars.find(avatar => avatar.id === avatarId)?.url ?? account.avatarUrl;
+  const avatarUrl = photo ?? catalog.avatars.find(avatar => avatar.id === avatarId)?.url ?? resolveAvatar(account.avatarUrl);
   const previewStyle = (id: PresetId) => ({ '--paper-color': presets[id].color, '--rotation': '-2deg',
     '--sheet-edge': paper.edge, '--wear-corner-size': paper.cornerSize, '--texture-position': paper.texturePosition,
     '--texture-size': paper.textureSize } as CSSProperties);

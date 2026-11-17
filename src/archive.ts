@@ -6,14 +6,14 @@ export interface ArchiveEntry {
   original?: StickyNoteData;
 }
 
-/** Active originals are context links, never archived cards. Explicitly archived replies stay separate. */
+/** An archived root groups matching replies; an active root is only shown as context. */
 export function archiveEntries(matches: StickyNoteData[], allNotes: StickyNoteData[]): ArchiveEntry[] {
   const byId = new Map(allNotes.map(note => [note.id, note]));
   const entries = new Map<string, ArchiveEntry>();
   for (const note of matches) {
     if (!note.isArchived) continue;
     const root = note.parentId ? byId.get(note.parentId) : undefined;
-    if (root?.isArchived && !note.archivedAt) {
+    if (root?.isArchived) {
       const entry = entries.get(root.id) ?? { note: root, replies: [] };
       entry.replies.push(note);
       entries.set(root.id, entry);

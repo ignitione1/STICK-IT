@@ -21,6 +21,8 @@
 .archive-workspace .archive-empty { padding: 50px 20px; background: none; }.archive-empty p { font-size: 12px; }
 .archive-filters select,.archive-filters input { min-height: 40px; }
 .archive-reset { align-self: flex-end; min-height: 44px; }
+.archive-purge { align-self: flex-end; min-height: 44px; color: #8f5148; }
+.archive-purge-hint { flex-basis: 100%; color: #8f5148; font-size: 10px; line-height: 1.4; }
 @keyframes archive-unfold { from { opacity: 0; transform: translate(var(--entry-offset, -35px), 24px); } to { opacity: 1; transform: none; } }
 @media (max-width: 600px) { .archive-workspace { padding: 18px 16px 50px; }.archive-stacks { grid-template-columns: 1fr; gap: 24px; }.archive-stack { padding: 18px; }.archive-stack-name { justify-content: center; }.archive-stack-name > svg { margin-left: 12px; }.archive-navigation { flex-wrap: wrap; gap: 12px; }.archive-workspace .archive-grid { grid-template-columns: 1fr; gap: 30px; padding-left: 6px; }.archive-filters { gap: 10px; }.archive-filters label { min-width: 130px; } }
 @media (prefers-reduced-motion: reduce) { .archive-entry { animation: none; }.archive-stack-sheet.sticky-note { transition: none; } }

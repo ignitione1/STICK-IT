@@ -143,6 +143,27 @@ test('вложения: транзакционная публикация, за�
     assert.equal((await app.inject({ url: '/api/attachments/' + image.id + '/preview', headers: b })).statusCode, 200);
     await db.update(schema.attachments).set({ storageKey: '../outside' }).where(eq(schema.attachments.id, image.id));
     assert.equal((await app.inject({ url: '/api/attachments/' + image.id + '/download', headers: b })).statusCode, 404);
+    await db.update(schema.attachments).set({ storageKey: rows.find(file => file.id === image.id)!.storageKey }).where(eq(schema.attachments.id, image.id));
+    const purge = (headers: typeof a, notes: { id: string; revision: number }[]) => app.inject({ method: 'POST', url: '/api/stickers/archive/purge', headers, payload: { boardId: board.id, notes } });
+    assert.equal((await purge(a, [{ id, revision: 3 }])).statusCode, 403);
+    assert.equal((await purge(b, [{ id, revision: 3 }])).statusCode, 409, 'нельзя удалить корень без ответов');
+    assert.equal((await purge(b, [{ id, revision: 2 }, { id: replyId, revision: 0 }])).statusCode, 409, 'устаревшая ревизия');
+    assert.equal((await readdir(uploadDir)).length, 5);
+    const deleted = await purge(b, [{ id, revision: 3 }, { id: replyId, revision: 0 }]);
+    assert.equal(deleted.statusCode, 200, deleted.body);
+    assert.equal(deleted.json().deleted, 2);
+    assert.deepEqual(await readdir(uploadDir), []);
+    assert.equal((await db.select().from(schema.stickers)).length, 0);
+    const secondRoot = randomUUID();
+    const secondReply = randomUUID();
+    assert.equal((await upload({ ...draft, id: secondRoot }, [files[0]])).statusCode, 201);
+    const secondReplyBody = multipart({ id: secondReply, parentId: secondRoot, boardId: board.id, text: 'Отдельный ответ' }, [files[1]]);
+    assert.equal((await app.inject({ method: 'POST', url: '/api/stickers/with-attachments', headers: { ...a, 'content-type': secondReplyBody.contentType }, payload: secondReplyBody.payload })).statusCode, 201);
+    assert.equal((await purge(b, [{ id: secondRoot, revision: 0 }, { id: secondReply, revision: 0 }])).statusCode, 409, 'активные записки защищены');
+    assert.equal((await app.inject({ method: 'PATCH', url: '/api/stickers/' + secondReply + '/archive', headers: a, payload: { archived: true, revision: 0 } })).statusCode, 200);
+    assert.equal((await purge(b, [{ id: secondReply, revision: 1 }])).statusCode, 200);
+    assert.deepEqual((await db.select().from(schema.stickers)).map(note => note.id), [secondRoot]);
+    assert.equal((await readdir(uploadDir)).length, 1, 'вложение активного оригинала сохранено');
     await db.update(schema.employees).set({ isActive: false }).where(eq(schema.employees.id, colleague.id));
     assert.equal((await app.inject({ url: '/api/attachments/' + document.id + '/download', headers: b })).statusCode, 401);
   } finally {

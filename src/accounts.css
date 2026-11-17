@@ -4,7 +4,8 @@
 .note-management button:disabled { opacity: 1; cursor: wait; }
 .note-management button:hover { background: #fffdf6; border-color: #6c735b; }.note-management button:focus-visible { outline: 2px solid #466caa; outline-offset: 2px; }.note-management .note-archive-button { background: #e9dfc9ed; border-color: #9a865b88; }.note-management svg { flex-shrink: 0; width: 14px; height: 14px; }
 @media (max-width: 600px) { .note-management button { min-height: 38px; } }
-.note-management button:disabled,.note-actions input:disabled { opacity: .45; cursor: default; }
+.note-actions input:disabled { opacity: .45; cursor: default; }
+.note-actions input[data-pending='true']:disabled { opacity: 1; cursor: wait; }
 .archive-filters { display: flex; flex-wrap: wrap; gap: 12px; padding: 12px 24px; background: #faf9f5; border-bottom: 1px solid #e8e5dd; }
 .archive-grid { flex: 1; min-height: 0; overflow: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); align-content: start; align-items: start; gap: 32px; padding: 25px 30px 60px; background: #f3efe8 url('/assets/board-grain.svg'); }
 .archive-thread.note-group { position: relative; left: auto; top: auto; width: 300px; }.archive-entry { min-width: 0; }.archive-thread-label { margin: 0 0 20px; color: #898276; font-size: 11px; }.archive-empty { flex: 1; padding: 70px 25px; text-align: center; color: #8c8b85; background: #f3efe8; }.archive-empty h2 { font-size: 18px; }

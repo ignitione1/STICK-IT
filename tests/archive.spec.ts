@@ -72,6 +72,9 @@ test('архив хранит отдельный ответ без активн�
   await expect(page.locator('.archive-grid .sticky-note')).toHaveCount(1);
   await page.getByLabel('Отдел архива').selectOption(it);
   await expect(page.locator('.archive-grid .sticky-note')).toHaveCount(3);
+  const grouped = page.locator('.archive-entry').filter({ has: page.locator('[data-note-id="' + rootId + '"]') });
+  await expect(grouped.locator('[data-note-id="' + replyId + '"]')).toHaveCount(1);
+  await expect(page.locator('.archive-reply-context')).toHaveCount(0);
   await page.screenshot({ path: '.local/archive-unfolded-mobile.png', fullPage: true, animations: 'disabled' });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.setViewportSize({ width: 1242, height: 900 });
@@ -81,6 +84,7 @@ test('архив хранит отдельный ответ без активн�
   await page.locator('[data-note-id="' + rootId + '"]').getByRole('button', { name: 'Вернуть на доску' }).click();
   await expect(page.locator('.archive-grid .sticky-note')).toHaveCount(1);
   await expect(archivedReply.getByRole('button', { name: 'Вернуть на доску' })).toBeVisible();
+  await expect(page.locator('.archive-reply-context')).toBeVisible();
   await archivedReply.getByRole('button', { name: 'Вернуть на доску' }).click();
   await expect(page.locator('.archive-grid .sticky-note')).toHaveCount(0);
   await page.getByRole('button', { name: 'IT-отдел SYS' }).click();
@@ -88,4 +92,28 @@ test('архив хранит отдельный ответ без активн�
   await expect(reply).toBeVisible();
   await page.reload();
   await expect(reply).toBeVisible();
+});
+
+test('администратор выборочно удаляет переписку из архива по фильтру', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Новый стикер' }).click();
+  await page.getByLabel('Текст записки').fill('Удаляемая переписка');
+  await page.getByRole('button', { name: 'Закрепить', exact: true }).click();
+  const root = page.locator('.sticky-note').filter({ hasText: 'Удаляемая переписка' });
+  await root.getByRole('button', { name: 'Ответить', exact: true }).click();
+  await page.getByLabel('Ваш ответ').fill('Ответ без совпадения');
+  await page.getByRole('button', { name: 'Закрепить', exact: true }).click();
+  page.once('dialog', dialog => dialog.accept());
+  await root.getByRole('button', { name: 'В архив', exact: true }).click();
+  await page.getByRole('button', { name: 'Архив', exact: true }).click();
+  const button = page.getByRole('button', { name: 'Удалить выбранное из архива' });
+  await expect(button).toBeDisabled();
+  await page.getByLabel('Отдел архива').selectOption(browserFixture.departments.find(item => item.legacyId === 'it')!.boardId);
+  await page.getByLabel('Поиск по запискам').fill('Удаляемая переписка');
+  await expect(page.getByText('К удалению: 2 (включая ответы)')).toBeVisible();
+  page.once('dialog', async dialog => { expect(dialog.message()).toContain('записок: 2'); await dialog.accept(); });
+  await button.click();
+  await expect(page.getByText('К удалению: 0 (включая ответы)')).toBeVisible();
+  const data = await (await page.request.get('/api/stickers')).json();
+  expect(data.notes.some((note: { text: string }) => ['Удаляемая переписка', 'Ответ без совпадения'].includes(note.text))).toBe(false);
 });

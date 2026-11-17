@@ -53,8 +53,8 @@ export default function StickyNote({ note, dragHandle, onToggle, onReply, onAtta
       {note.notice && <div className="note-notice">{note.notice}</div>}
       <div className="stamp-row"><span className="department-stamp">{department.stamp}{note.id.includes('anna-1') ? ' · ОТДЕЛ' : ''}{note.announcement ? ' · ОБЪЯВЛЕНИЕ' : ''}</span></div>
       <footer className="note-actions">
-        <label><input type="checkbox" checked={note.read} disabled={readOnly || note.canMark === false || note.busy} onChange={() => onToggle(note.id, 'read')} /><span>Прочитано</span></label>
-        <label><input type="checkbox" checked={note.done} disabled={readOnly || note.canMark === false || note.busy || !note.read} onChange={() => onToggle(note.id, 'done')} /><span>Готово</span></label>
+        <label><input type="checkbox" checked={note.read} disabled={readOnly || note.canMark === false || note.busy} data-pending={!!note.busy && !readOnly && note.canMark !== false} onChange={() => onToggle(note.id, 'read')} /><span>Прочитано</span></label>
+        <label><input type="checkbox" checked={note.done} disabled={readOnly || note.canMark === false || note.busy || !note.read} data-pending={!!note.busy && !readOnly && note.canMark !== false && note.read} onChange={() => onToggle(note.id, 'done')} /><span>Готово</span></label>
         {!readOnly && <button onClick={() => onReply(note)}><Reply size={13} />Ответить</button>}
       </footer>
       {((!readOnly && (note.canEdit || note.canArchive)) || note.canRestore) && <div className="note-management">

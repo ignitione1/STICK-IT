@@ -81,6 +81,9 @@ export function useNotes() {
       return mutate(() => api(`/stickers/${note.id}/marks`, 'PATCH', { [key]: !note[key], revision: note.revision }), note.id);
     },
     archive: (note: StickyNoteData, archived: boolean) => mutate(() => api(`/stickers/${note.id}/archive`, 'PATCH', { archived, revision: note.revision }), note.id),
+    purgeArchive: (boardId: string, selected: StickyNoteData[]) => mutate(() => api<{ deleted: number; filesRemoved: boolean }>('/stickers/archive/purge', 'POST', {
+      boardId, notes: selected.map(note => ({ id: note.id, revision: note.revision })),
+    })),
     move: (id: string, x: number, y: number) => {
       setNotes(previous => previous.map(note => note.id === id ? { ...note, x, y } : note));
       return mutate(() => api(`/stickers/${id}/position`, 'PATCH', { x, y }));

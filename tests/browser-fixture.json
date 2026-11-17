@@ -67,7 +67,7 @@
       "departmentId": "00000000-0000-4000-8000-000000000002",
       "paperStyle": "yellow",
       "role": "user",
-      "avatarUrl": "/assets/anna.jpg"
+      "avatarUrl": "/assets/avatars/avatar-7.svg"
     },
     {
       "legacyId": "denis",
@@ -77,7 +77,7 @@
       "departmentId": "00000000-0000-4000-8000-000000000001",
       "paperStyle": "blue",
       "role": "user",
-      "avatarUrl": "/assets/denis.jpg"
+      "avatarUrl": "/assets/avatars/avatar-1.svg"
     },
     {
       "legacyId": "elena",
@@ -87,7 +87,7 @@
       "departmentId": "00000000-0000-4000-8000-000000000003",
       "paperStyle": "mint",
       "role": "user",
-      "avatarUrl": "/assets/elena.jpg"
+      "avatarUrl": "/assets/avatars/avatar-8.svg"
     },
     {
       "legacyId": "maxim",
@@ -97,7 +97,7 @@
       "departmentId": "00000000-0000-4000-8000-000000000005",
       "paperStyle": "cream",
       "role": "user",
-      "avatarUrl": "/assets/maxim.jpg"
+      "avatarUrl": "/assets/avatars/avatar-2.svg"
     },
     {
       "legacyId": "olga",
@@ -107,7 +107,7 @@
       "departmentId": "00000000-0000-4000-8000-000000000004",
       "paperStyle": "pink",
       "role": "user",
-      "avatarUrl": "/assets/olga.jpg"
+      "avatarUrl": "/assets/avatars/avatar-9.svg"
     },
     {
       "legacyId": "maria",
@@ -117,7 +117,7 @@
       "departmentId": "00000000-0000-4000-8000-000000000006",
       "paperStyle": "blue",
       "role": "user",
-      "avatarUrl": "/assets/maria.jpg"
+      "avatarUrl": "/assets/avatars/avatar-10.svg"
     },
     {
       "legacyId": "victor",
@@ -127,7 +127,7 @@
       "departmentId": "00000000-0000-4000-8000-000000000002",
       "paperStyle": "cream",
       "role": "user",
-      "avatarUrl": "/assets/victor.jpg"
+      "avatarUrl": "/assets/avatars/avatar-3.svg"
     },
     {
       "legacyId": "konstantin",
@@ -137,7 +137,7 @@
       "departmentId": "00000000-0000-4000-8000-000000000001",
       "paperStyle": "yellow",
       "role": "admin",
-      "avatarUrl": "/assets/konstantin.jpg"
+      "avatarUrl": "/assets/avatars/avatar-4.svg"
     }
   ]
 }

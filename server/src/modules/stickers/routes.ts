@@ -5,7 +5,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Env } from '../../config/env.js';
 import type { Database } from '../../plugins/database.js';
-import { attachments, boards, departments, employeeDepartments, employees, stickers,
+import { attachments, boards, departments, employeeDepartments, employees, notifications, stickers,
   stickerDepartmentRecipients, stickerEmployeeRecipients } from '../../db/schema.js';
 import type { Sticker } from '../../db/schema.js';
 import { access } from '../accounts/access.js';
@@ -115,7 +115,7 @@ export const stickerRoutes: FastifyPluginAsync<{ env: Env }> = async (app, { env
         isArchived: archived, closedBoard, effectiveArchivedAt: dates.length ? new Date(Math.min(...dates.map(date => date.getTime()))) : null,
         recipientEmployeeIds: personal, recipientDepartmentIds: groups, isRecipient: recipient,
         canMark: !archived && (note.authorId === mine || recipient), canEdit: !archived && note.authorId === mine,
-        canArchive: !archived && note.authorId === mine, canRestore: !!note.archivedAt && !closedBoard && (!note.parentId || !root.archivedAt) && note.authorId === mine,
+        canArchive: !archived && (note.authorId === mine || request.actor!.employee.role === 'admin'), canRestore: !!note.archivedAt && !closedBoard && (!note.parentId || !root.archivedAt) && note.authorId === mine,
         authorSnapshot: { id: person.id, name: person.displayName, label: `${person.displayName} (${department.name})`,
           department: department.id, avatar: person.avatarUrl ?? '', preset: note.paperStyle },
         departmentSnapshot: { id: department.id, name: department.name, color: department.color, stamp: department.name.toUpperCase() },
@@ -240,6 +240,43 @@ export const stickerRoutes: FastifyPluginAsync<{ env: Env }> = async (app, { env
     try { await removeFiles(env.UPLOAD_DIR, files.filter(file => /^[a-f0-9-]{36}\.bin$/.test(file.storageKey))); }
     catch { app.log.warn({ count: files.length }, 'Не удалось очистить удалённые вложения'); }
   }
+  app.post('/stickers/archive/purge', { preHandler: mutation }, async request => {
+    if (request.actor!.employee.role !== 'admin') return failure(403, 'Доступно только администратору');
+    const input = parse(z.object({ boardId: z.string().uuid(), notes: z.array(z.object({ id: z.string().uuid(), revision }).strict()).min(1).max(100) }).strict(), request.body);
+    const expected = new Map(input.notes.map(note => [note.id, note.revision]));
+    if (expected.size !== input.notes.length) return failure(400, 'Повторяются записки для удаления');
+    const removed = await database().transaction(async tx => {
+      const { active } = await activeBoard(tx, input.boardId);
+      const boardNotes = await tx.select().from(stickers).where(eq(stickers.boardId, input.boardId)).for('update');
+      const byId = new Map(boardNotes.map(note => [note.id, note]));
+      const selected = input.notes.map(item => byId.get(item.id));
+      if (selected.some(note => !note || note.revision !== expected.get(note.id))) return failure(409, 'Архив изменился. Обновите страницу и проверьте выбор заново');
+      for (const note of selected) {
+        if (!note) return failure(409, 'Записка не найдена');
+        const root = note.parentId ? byId.get(note.parentId) : note;
+        if (!root || (active && !note.archivedAt && !root.archivedAt)) return failure(409, 'Удалять можно только записки в архиве');
+        if (!note.parentId && boardNotes.some(reply => reply.parentId === note.id && !expected.has(reply.id))) return failure(409, 'Состав переписки изменился. Обновите страницу и проверьте выбор заново');
+      }
+      const ids = [...expected.keys()];
+      const files = await tx.select().from(attachments).where(inArray(attachments.stickerId, ids));
+      await tx.delete(notifications).where(inArray(notifications.stickerId, ids));
+      await tx.delete(stickerEmployeeRecipients).where(inArray(stickerEmployeeRecipients.stickerId, ids));
+      await tx.delete(stickerDepartmentRecipients).where(inArray(stickerDepartmentRecipients.stickerId, ids));
+      await tx.delete(attachments).where(inArray(attachments.stickerId, ids));
+      const replies = selected.filter((note): note is Sticker => !!note?.parentId).map(note => note.id);
+      const roots = selected.filter((note): note is Sticker => !!note && !note.parentId).map(note => note.id);
+      if (replies.length) await tx.delete(stickers).where(inArray(stickers.id, replies));
+      if (roots.length) await tx.delete(stickers).where(inArray(stickers.id, roots));
+      return files;
+    });
+    try {
+      await removeFiles(env.UPLOAD_DIR, removed.filter(file => /^[a-f0-9-]{36}\.bin$/.test(file.storageKey)));
+      return { deleted: expected.size, filesRemoved: true };
+    } catch {
+      app.log.error({ count: removed.length }, 'Не удалось удалить файлы очищенного архива');
+      return { deleted: expected.size, filesRemoved: false };
+    }
+  });
   app.patch<{ Params: { id: string } }>('/stickers/:id', { preHandler: mutation }, async request => {
     const { removed, ...result } = await editNote(request, parseId(request.params.id), request.body);
     await removeOldFiles(removed);
@@ -296,7 +333,8 @@ export const stickerRoutes: FastifyPluginAsync<{ env: Env }> = async (app, { env
   app.patch<{ Params: { id: string } }>('/stickers/:id/archive', { preHandler: mutation }, async request => {
     const input = parse(z.object({ archived: z.boolean(), revision }).strict(), request.body);
     return withNote(request, parseId(request.params.id), async (tx, note, root, active) => {
-      requireOwner(request, note); requireRevision(note, input.revision);
+      if (!input.archived || request.actor!.employee.role !== 'admin') requireOwner(request, note);
+      requireRevision(note, input.revision);
       if (!input.archived && !active) return failure(409, 'Нельзя вернуть записку на доску удалённого отдела');
       if (!input.archived && note.parentId && root.archivedAt) return failure(409, 'Сначала автор должен вернуть основную записку из архива');
       await tx.update(stickers).set({ archivedAt: input.archived ? note.archivedAt ?? new Date() : null,

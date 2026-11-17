@@ -45,7 +45,7 @@ function LegacyCopy({ onImport }: { onImport: (notes: StickyNoteData[]) => Promi
 }
 
 export default function App() {
-  const { currentEmployee, departments, allDepartments, employees } = useDirectory();
+  const { currentEmployee, departments, allDepartments, employees, isAdmin } = useDirectory();
   const sync = useNotes();
   const notes = sync.notes;
   const push = usePush(currentEmployee.id, () => sound.play(), () => sound.isEnabled(), () => sound.isReady());
@@ -141,6 +141,10 @@ export default function App() {
     } else setAttachment(note);
   }
   const authors = [...new Map(notes.filter(note => note.authorSnapshot).map(note => [note.authorId, note.authorSnapshot!])).values()];
+  const purgeMatches = visibleNotes.filter(note => note.boardId === archiveBoard);
+  const purgeRoots = new Set(purgeMatches.filter(note => !note.parentId).map(note => note.id));
+  const purgeIds = new Set(purgeMatches.map(note => note.id));
+  const purgeNotes = notes.filter(note => purgeIds.has(note.id) || (!!note.parentId && purgeRoots.has(note.parentId)));
   return <div className="app">
     <Sidebar view={view} onChange={changeView} unread={notifications.length} soundEnabled={sound.enabled} onToggleSound={sound.toggle} pushEnabled={push.enabled} onTogglePush={push.toggle} pushError={push.error} open={menuOpen} onClose={() => setMenuOpen(false)} />
     <main className="main">
@@ -158,6 +162,11 @@ export default function App() {
         <button className="secondary-button archive-reset" disabled={!archiveBoard && !sender && !receiver && !from && !to && !query} onClick={() => {
           setArchiveBoard(''); setSender(''); setReceiver(''); setFrom(''); setTo(''); setQuery('');
         }}>Сбросить фильтры</button>
+        {isAdmin && <><button className="secondary-button archive-purge" disabled={!archiveBoard || !purgeNotes.length || purgeNotes.length > 100} onClick={() => {
+          if (window.confirm(`Удалить навсегда записок: ${purgeNotes.length}? Вместе с выбранными основными записками будут удалены все их ответы и вложения. Это действие нельзя отменить.`)) void sync.purgeArchive(archiveBoard, purgeNotes).then(result => {
+            if (!result.filesRemoved) window.alert('Записки удалены, но не все файлы удалось удалить из хранилища. Проверьте журнал сервера.');
+          }).catch(() => {});
+        }}>Удалить выбранное из архива</button><small className="archive-purge-hint">{!archiveBoard ? 'Выберите отдел и при необходимости другие фильтры.' : purgeNotes.length > 100 ? 'Не более 100 записок за раз. Уточните фильтры.' : `К удалению: ${purgeNotes.length} (включая ответы)`}</small></>}
       </div>}
       {sync.loading && <div className="sync-message" role="status">Загружаем записки с сервера…</div>}
       {sync.error && <div className="sync-error" role="alert"><span>{sync.error}</span><button onClick={() => { sync.clearError(); void sync.refresh(); }}>Обновить доску</button></div>}
