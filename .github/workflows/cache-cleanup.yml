@@ -1,0 +1,33 @@
+name: Очистка старых кэшей
+
+on:
+  schedule:
+    - cron: '0 20 * * 0'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Сохранить последний кэш main и удалить старые
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          caches=$(gh api --paginate --slurp "repos/${GH_REPO}/actions/caches?per_page=100&key=stick-it-npm-v1-")
+          keep=$(jq -r '[.[].actions_caches[] | select(.ref == "refs/heads/main" and (.key | startswith("stick-it-npm-v1-")))] | sort_by(.created_at, .id) | last | .id // empty' <<< "$caches")
+          if [ -z "$keep" ]; then
+            echo 'Кэш main отсутствует; очистка пропущена.'
+            exit 0
+          fi
+          echo "Сохраняется кэш main: $keep"
+          while IFS= read -r id; do
+            [ -n "$id" ] || continue
+            gh api --method DELETE "repos/${GH_REPO}/actions/caches/${id}"
+            echo "Удалён кэш: $id"
+          done < <(jq -r --argjson keep "$keep" '.[].actions_caches[] | select((.key | startswith("stick-it-npm-v1-")) and .id != $keep) | .id' <<< "$caches")

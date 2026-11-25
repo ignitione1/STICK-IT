@@ -1,0 +1,52 @@
+name: Проверка и сборка образов
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Восстановить кэш npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: stick-it-npm-v1-${{ runner.os }}-${{ hashFiles('package-lock.json', 'server/package-lock.json') }}
+          restore-keys: stick-it-npm-v1-${{ runner.os }}-
+      - name: Установить зависимости
+        run: |
+          npm ci
+          npm --prefix server ci
+      - name: Собрать интерфейс
+        run: npm run build
+      - name: Проверить сервер
+        run: |
+          npm --prefix server run typecheck
+          npm --prefix server test
+      - name: Собрать контейнеры
+        run: |
+          docker build --target runtime -t stick-it-api:${GITHUB_SHA} -f server/Dockerfile server
+          docker build -t stick-it-web:${GITHUB_SHA} -f deploy/web.Dockerfile .
+      - name: Опубликовать образы в GitHub Container Registry
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          image_prefix="ghcr.io/$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          for service in api web; do
+            docker tag "stick-it-${service}:${GITHUB_SHA}" "${image_prefix}-${service}:${GITHUB_SHA}"
+            docker push "${image_prefix}-${service}:${GITHUB_SHA}"
+          done
