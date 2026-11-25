@@ -23,7 +23,7 @@ function PersonForm({ person, departments, memberships, onSubmit }: { person?: M
   } catch (failure) { setError(failure instanceof Error ? failure.message : 'Не удалось сохранить'); } finally { setBusy(false); } }}>
     <label className="form-field">Имя сотрудника<input value={name} onChange={event => setName(event.target.value)} required maxLength={200} /></label>
     <label className="form-field">Логин<input value={login} onChange={event => setLogin(event.target.value)} required minLength={3} maxLength={64} autoComplete="off" pattern="[a-zA-Z0-9][a-zA-Z0-9._-]*" /></label>
-    <label className="form-field">{person ? 'Новый пароль (оставьте пустым, чтобы сохранить)' : 'Пароль'}<input type="password" autoComplete="new-password" value={password} onChange={event => setPassword(event.target.value)} required={!person} minLength={12} maxLength={128} /></label>
+    <label className="form-field">{person ? 'Новый пароль (оставьте пустым, чтобы сохранить)' : 'Пароль'}<input type="password" autoComplete="new-password" value={password} onChange={event => setPassword(event.target.value)} required={!person} minLength={6} maxLength={128} /></label>
     <p className="admin-role-label">{role === 'admin' ? 'Администратор · создан отдельной командой' : 'Сотрудник'}</p>
     <fieldset className="department-checks"><legend>Отделы сотрудника</legend>{departments.map(department => <label key={department.id}><input type="checkbox" checked={ids.includes(department.id)} onChange={event => {
       const next = event.target.checked ? [...ids, department.id] : ids.filter(id => id !== department.id); setIds(next);

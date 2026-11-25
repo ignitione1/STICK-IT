@@ -4,7 +4,7 @@ import { validAvatarPhoto } from './photo.js';
 import { AccountError } from './security.js';
 
 export const login = z.string().trim().toLowerCase().min(3).max(64).regex(/^[a-z0-9][a-z0-9._-]*$/, 'Логин: латинские буквы, цифры, точка, дефис или подчёркивание');
-export const password = z.string().min(12).max(128);
+export const password = z.string().min(6).max(128);
 export const personInput = z.object({
   login, displayName: z.string().trim().min(1).max(200), password,
   role: z.literal('user').default('user'),
@@ -27,7 +27,7 @@ export const profileInput = z.object({
 }).strict().refine(value => !(value.avatarId && value.avatarPhoto));
 export function parse<T extends z.ZodType>(schema: T, value: unknown): z.infer<T> {
   const result = schema.safeParse(value);
-  if (!result.success) throw new AccountError(400, 'Проверьте поля формы. Пароль — от 12 до 128 символов; у сотрудника должен быть основной отдел.');
+  if (!result.success) throw new AccountError(400, 'Проверьте поля формы. Пароль — от 6 до 128 символов; у сотрудника должен быть основной отдел.');
   return result.data;
 }
 export const parseId = (value: unknown) => parse(z.string().uuid(), value);

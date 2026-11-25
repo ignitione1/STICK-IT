@@ -16,7 +16,7 @@ async function main() {
   try {
     const login = await reader.question('Логин администратора: ');
     const displayName = await reader.question('Отображаемое имя: ');
-    process.stdout.write('Пароль (от 12 символов, ввод скрыт): ');
+    process.stdout.write('Пароль (от 6 символов, ввод скрыт): ');
     hidden = true;
     const password = await reader.question('');
     hidden = false;

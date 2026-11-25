@@ -41,8 +41,9 @@ test('вход, права, отделы, профиль, сброс парол�
       payload: { name: 'IT', code: 'it', color: '#2760db' } });
     assert.equal(division.statusCode, 201, division.body);
     const departmentId = division.json().id;
-    const personBody = { login: 'employee', displayName: 'Сотрудник', password: 'Employee-password-2026', role: 'user',
+    const personBody = { login: 'employee', displayName: 'Сотрудник', password: '123456', role: 'user',
       departmentIds: [departmentId], primaryDepartmentId: departmentId };
+    assert.equal((await app.inject({ method: 'POST', url: '/api/admin/employees', headers: adminHeaders, payload: { ...personBody, password: '12345' } })).statusCode, 400);
     assert.equal((await app.inject({ method: 'POST', url: '/api/admin/employees', headers: adminHeaders, payload: { ...personBody, role: 'admin' } })).statusCode, 400);
     const person = await app.inject({ method: 'POST', url: '/api/admin/employees', headers: adminHeaders, payload: personBody });
     assert.equal(person.statusCode, 201, person.body);

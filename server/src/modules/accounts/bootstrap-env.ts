@@ -22,7 +22,7 @@ export async function bootstrapAdminsFromEnv(db: Database, input: NodeJS.Process
       return !found;
     });
     if (existing.filter(employee => employee.role === 'admin').length + pending.length > 2) throw new AccountError(409, 'В базе уже есть другие администраторы. Проверьте логины в env');
-    if (pending.some(person => !password.safeParse(person.password).success)) throw new AccountError(400, 'Для новых администраторов нужны пароли от 12 до 128 символов');
+    if (pending.some(person => !password.safeParse(person.password).success)) throw new AccountError(400, 'Для новых администраторов нужны пароли от 6 до 128 символов');
     for (const person of pending) await tx.insert(employees).values({ login: person.login, displayName: person.displayName,
       passwordHash: await hashPassword(person.password!), role: 'admin', mustChangePassword: false });
     if (!(await tx.select().from(boards).where(eq(boards.isGeneral, true)).limit(1)).length) await tx.insert(boards).values({ name: 'Общая доска', isGeneral: true });

@@ -21,9 +21,11 @@ async function database() {
 
 test('два администратора из env создаются идемпотентно без смены паролей и повышения сотрудников', async () => {
   const { pg, db } = await database();
-  const env = { BOOTSTRAP_ADMIN_1_LOGIN: 'AdminOne', BOOTSTRAP_ADMIN_1_NAME: 'Первый', BOOTSTRAP_ADMIN_1_PASSWORD: 'First-admin-password-2026',
+  const env = { BOOTSTRAP_ADMIN_1_LOGIN: 'AdminOne', BOOTSTRAP_ADMIN_1_NAME: 'Первый', BOOTSTRAP_ADMIN_1_PASSWORD: '123456',
     BOOTSTRAP_ADMIN_2_LOGIN: 'admintwo', BOOTSTRAP_ADMIN_2_NAME: 'Второй', BOOTSTRAP_ADMIN_2_PASSWORD: 'Second-admin-password-2026' };
   try {
+    await assert.rejects(bootstrapAdminsFromEnv(db as unknown as Database, { ...env, BOOTSTRAP_ADMIN_1_PASSWORD: '12345' }));
+    assert.equal((await db.select().from(schema.employees)).length, 0);
     assert.deepEqual(await bootstrapAdminsFromEnv(db as unknown as Database, env), { created: 2, unchanged: 0 });
     const before = await db.select().from(schema.employees);
     assert.deepEqual(await bootstrapAdminsFromEnv(db as unknown as Database, { ...env, BOOTSTRAP_ADMIN_1_PASSWORD: 'Changed-password-2026', BOOTSTRAP_ADMIN_1_NAME: 'Новое имя' }), { created: 0, unchanged: 2 });
