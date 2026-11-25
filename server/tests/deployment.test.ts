@@ -81,6 +81,16 @@ test('Dockerfile копируют существующие входы, гото�
   assert.ok(migrations[0].sql.length > 0);
 });
 
+test('временные каталоги Nginx доступны при read-only корне контейнера', () => {
+  const nginx = read('deploy/nginx/nginx.conf');
+  for (const directive of ['client_body', 'proxy', 'fastcgi', 'uwsgi', 'scgi']) {
+    assert.match(nginx, new RegExp(`^\\s*${directive}_temp_path\\s+/tmp/[^;]+;`, 'm'));
+  }
+  const compose = parseDocument(read('compose.yaml')).toJS();
+  assert.equal(compose.services.web.read_only, true);
+  assert.ok(compose.services.web.tmpfs.some((entry: string) => entry.startsWith('/tmp:')));
+});
+
 test('миграция принимает только явный целевой Compose-host, базу и роль', () => {
   const expected = { POSTGRES_DB: 'stickerboard', POSTGRES_APP_USER: 'stickerboard' };
   const url = 'postgresql://stickerboard:test-secret@postgres:5432/stickerboard';
