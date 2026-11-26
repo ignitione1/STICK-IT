@@ -8,6 +8,8 @@ playwright-report/
 .env.*
 !.env.example
 backups/
+__pycache__/
+*.pyc
 uploads/
 server/uploads/
 *.images.tar

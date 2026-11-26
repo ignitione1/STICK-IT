@@ -50,7 +50,7 @@ button { transition: background-color .15s, box-shadow .15s; }
 .search-field input::placeholder { color: #383b3d; opacity: 1; }
 .header select { width: 170px; min-width: 130px; padding: 7px 10px; border: 1px solid #cbc7bf; border-radius: 5px; background: #faf7f266; font-size: 12px; }
 .primary-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 36px; padding: 9px 16px; border-radius: 5px; background: linear-gradient(#24292d, #14181c); color: #fff; box-shadow: 0 2px 5px #0003, inset 0 1px 1px #ffffff26; font-size: 13px; font-weight: 500; white-space: nowrap; }
-.primary-button:hover:not(:disabled) { background: #364047; box-shadow: 0 3px 8px #0003; }
+.primary-button:hover:not(:disabled) { box-shadow: 0 3px 8px #0003, inset 0 1px 1px #ffffff26; }
 .new-note-button { margin-left: auto; }
 .board-viewport { flex: 1; min-height: 0; overflow: auto; position: relative; background: #e9ded0; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #bdb1a1 #eae1d5; }
 .board-surface { position: relative; min-width: 100%; background-color: #eee3d4; background-image: url('/assets/board-grain.svg'), radial-gradient(ellipse at 30% 25%, #fffcf152, transparent 70%), linear-gradient(110deg, #eae0d3, #f4e9db 75%, #e8ddcf); }

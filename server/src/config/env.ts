@@ -13,7 +13,7 @@ const envSchema = z.object({
   }).default('http://127.0.0.1:5173'),
   TRUST_PROXY: z.enum(['none', 'one']).default('none'),
   COOKIE_SECURE: z.enum(['true', 'false']).default('true').transform(value => value === 'true'),
-  SESSION_HOURS: z.coerce.number().int().min(1).max(168).default(12),
+  SESSION_HOURS: z.coerce.number().int().min(1).max(2160).default(720),
   VAPID_PUBLIC_KEY: z.string().default(''),
   VAPID_PRIVATE_KEY: z.string().default(''),
   DATABASE_URL: z.preprocess(value => value === '' ? undefined : value,

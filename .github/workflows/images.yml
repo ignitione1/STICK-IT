@@ -34,6 +34,8 @@ jobs:
         run: |
           npm --prefix server run typecheck
           npm --prefix server test
+          python3 -m unittest discover -s deploy/tests -v
+          sh deploy/tests/test-prune-images.sh
       - name: Собрать контейнеры
         run: |
           docker build --target runtime -t stick-it-api:${GITHUB_SHA} -f server/Dockerfile server

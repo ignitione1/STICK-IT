@@ -91,6 +91,20 @@ test('временные каталоги Nginx доступны при read-onl
   assert.ok(compose.services.web.tmpfs.some((entry: string) => entry.startsWith('/tmp:')));
 });
 
+test('деплой запускается только вручную и использует ограниченные права', () => {
+  const workflow = parseDocument(read('.github/workflows/deploy.yml'), { uniqueKeys: true });
+  assert.deepEqual(workflow.errors, []);
+  const config = workflow.toJS();
+  assert.deepEqual(Object.keys(config.on), ['workflow_dispatch']);
+  assert.equal(config.permissions.contents, 'read');
+  assert.equal(config.concurrency['cancel-in-progress'], false);
+  assert.equal(config.jobs.deploy.if, "github.ref == 'refs/heads/main'");
+  const script = read('deploy/scripts/deploy-release.sh');
+  assert.match(script, /git merge-base --is-ancestor "\$release" origin\/main/);
+  assert.match(script, /git diff --quiet "\$previous" "\$release" -- server\/drizzle/);
+  assert.match(script, /flock -n 9/);
+});
+
 test('миграция принимает только явный целевой Compose-host, базу и роль', () => {
   const expected = { POSTGRES_DB: 'stickerboard', POSTGRES_APP_USER: 'stickerboard' };
   const url = 'postgresql://stickerboard:test-secret@postgres:5432/stickerboard';

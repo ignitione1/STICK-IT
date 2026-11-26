@@ -1,0 +1,39 @@
+name: Ручной деплой на VPS
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Полный SHA коммита с успешно собранными образами
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stickit-vps-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Подключиться к VPS и запустить выбранный выпуск
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST_KEY: ${{ secrets.DEPLOY_HOST_KEY }}
+        run: |
+          set -eu
+          printf '%s' "$RELEASE_SHA" | grep -Eq '^[0-9a-f]{40}$' || { echo 'Укажите полный SHA в нижнем регистре'; exit 1; }
+          test -n "$DEPLOY_HOST" && test -n "$DEPLOY_KEY" && test -n "$DEPLOY_HOST_KEY"
+          printf '%s' "$DEPLOY_HOST" | grep -Eq '^[a-zA-Z0-9.-]+$' || { echo 'Неверный адрес VPS'; exit 1; }
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_KEY" > "$HOME/.ssh/stickit_deploy"
+          printf '%s\n' "$DEPLOY_HOST_KEY" > "$HOME/.ssh/known_hosts"
+          ssh -i "$HOME/.ssh/stickit_deploy" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 "root@$DEPLOY_HOST" "$RELEASE_SHA"

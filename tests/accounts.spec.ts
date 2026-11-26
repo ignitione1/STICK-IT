@@ -10,6 +10,10 @@ test('администратор создаёт отдел и сотрудник
   const password = 'New-browser-user-password-2026';
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'С возвращением' })).toBeVisible();
+  const loginButton = page.getByRole('button', { name: 'Войти', exact: true });
+  const loginBackground = await loginButton.evaluate(element => getComputedStyle(element).backgroundImage);
+  await loginButton.hover();
+  await expect(loginButton).toHaveCSS('background-image', loginBackground);
   await page.screenshot({ path: '.local/login-desktop.png' });
   await page.getByLabel('Логин', { exact: true }).fill('konstantin');
   await page.getByLabel('Пароль', { exact: true }).fill(browserFixture.password);
@@ -19,6 +23,10 @@ test('администратор создаёт отдел и сотрудник
   await page.getByRole('button', { name: 'Войти', exact: true }).click();
   await page.getByRole('button', { name: 'Управление командой' }).click();
   await expect(page.getByRole('heading', { name: 'Команда и отделы' })).toBeVisible();
+  const addPerson = page.getByRole('button', { name: 'Добавить сотрудника' });
+  const adminBackground = await addPerson.evaluate(element => getComputedStyle(element).backgroundImage);
+  await addPerson.hover();
+  await expect(addPerson).toHaveCSS('background-image', adminBackground);
   await page.getByRole('button', { name: /^Отделы/ }).click();
   await page.getByRole('button', { name: 'Добавить отдел' }).click();
   await page.getByLabel('Название отдела').fill(department);

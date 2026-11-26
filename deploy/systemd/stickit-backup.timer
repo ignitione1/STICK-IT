@@ -1,0 +1,10 @@
+[Unit]
+Description=Nightly Stick-it backup
+
+[Timer]
+OnCalendar=*-*-* 20:00:00 UTC
+Persistent=true
+Unit=stickit-backup.service
+
+[Install]
+WantedBy=timers.target

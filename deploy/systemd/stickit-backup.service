@@ -1,0 +1,10 @@
+[Unit]
+Description=Stick-it database and attachment backup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/stick-it
+ExecStart=/bin/sh /opt/stick-it-ops/scheduled-backup.sh
+UMask=0077

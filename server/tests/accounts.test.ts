@@ -36,6 +36,22 @@ test('вход, права, отделы, профиль, сброс парол�
     assert.match(String(admin.headers['set-cookie']), /SameSite=Strict/i);
     assert.ok(!admin.body.includes('passwordHash'));
     const adminHeaders = credentials(admin);
+    const [adminSession] = await db.select().from(schema.sessions).where(eq(schema.sessions.employeeId, admin.json().employee.id));
+    assert.ok(adminSession.expiresAt.getTime() - Date.now() > 29 * 24 * 3600000);
+    await db.update(schema.sessions).set({ expiresAt: new Date(Date.now() + 3600000) }).where(eq(schema.sessions.id, adminSession.id));
+    const renewed = await app.inject({ url: '/api/auth/me', headers: adminHeaders });
+    assert.equal(renewed.statusCode, 200);
+    assert.match(String(renewed.headers['set-cookie']), /Max-Age=2592000/);
+    const [extended] = await db.select().from(schema.sessions).where(eq(schema.sessions.id, adminSession.id));
+    assert.ok(extended.expiresAt.getTime() - Date.now() > 29 * 24 * 3600000);
+    assert.equal((await app.inject({ url: '/api/auth/me', headers: adminHeaders })).headers['set-cookie'], undefined);
+    const expiredLogin = await signIn('admin', 'Admin-test-password-2026');
+    const adminSessions = await db.select().from(schema.sessions).where(eq(schema.sessions.employeeId, admin.json().employee.id));
+    const expiredSession = adminSessions.find(session => session.id !== adminSession.id)!;
+    await db.update(schema.sessions).set({ createdAt: new Date(Date.now() - 7200000), expiresAt: new Date(Date.now() - 1000) }).where(eq(schema.sessions.id, expiredSession.id));
+    const expiredResponse = await app.inject({ url: '/api/auth/me', headers: credentials(expiredLogin) });
+    assert.equal(expiredResponse.statusCode, 401);
+    assert.equal(expiredResponse.headers['set-cookie'], undefined);
     assert.equal((await app.inject({ method: 'POST', url: '/api/admin/departments', headers: { cookie: adminHeaders.cookie }, payload: {} })).statusCode, 403);
     const division = await app.inject({ method: 'POST', url: '/api/admin/departments', headers: adminHeaders,
       payload: { name: 'IT', code: 'it', color: '#2760db' } });
