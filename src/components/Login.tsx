@@ -9,7 +9,7 @@ export default function Login({ onLogin }: { onLogin: (value: { employee: Accoun
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  return <main className="account-entry"><div className="login-art" aria-hidden="true"><div className="login-paper"><Pin size={30} /><span>Хорошие идеи<br />остаются на доске.</span><small>STICK-IT · ДЛЯ КОМАНДЫ</small></div></div>
+  return <main className="account-entry"><div className="login-art" aria-hidden="true"><div className="login-paper"><Pin size={30} /><span>Всё важное —<br />на одной доске.</span><small>STICK-IT · ДЛЯ КОМАНДЫ</small></div></div>
     <section className="login-card"><div className="account-wordmark"><Pin size={23} /> Stick-it</div><span className="account-eyebrow">РАБОЧЕЕ ПРОСТРАНСТВО</span><h1>С возвращением</h1><p>Войдите, чтобы быть на одной доске с командой.</p>
       <form onSubmit={async event => { event.preventDefault(); setBusy(true); setError(''); try {
         const session = await api<{ employee: Account; csrfToken: string }>('/auth/login', 'POST', { login, password });

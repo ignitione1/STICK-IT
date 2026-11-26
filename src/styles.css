@@ -71,7 +71,7 @@ button { transition: background-color .15s, box-shadow .15s; }
 .note-message mark { background: #716c5a13; color: inherit; font-size: 12px; font-weight: 600; padding: 0 3px; }
 .note-message strong { font-weight: 600; }
 .attachment { width: 100%; display: flex; align-items: center; gap: 10px; background: linear-gradient(#fffc, #fff9); margin: 11px 0 0; padding: 8px 10px; border: 1px solid #fff8; border-radius: 4px; box-shadow: 0 2px 2px #4934151f; text-align: left; }
-.attachment:hover { background: #fff; }
+.attachment:hover { border-color: #fff; box-shadow: 0 1px 1px #fff9 inset, 0 2px 5px #49341538; }
 .attachment > span { flex: 1; min-width: 0; }
 .attachment strong { display: block; font-size: 11px; font-weight: 600; overflow-wrap: anywhere; }
 .attachment small { display: block; font-size: 9px; letter-spacing: .7px; margin-top: 2px; }

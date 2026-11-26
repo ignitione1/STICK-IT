@@ -29,6 +29,14 @@ test('вложения: выбор, просмотр изображения, с�
   await page.getByRole('button', { name: 'Закрепить', exact: true }).click();
   const note = page.locator('.sticky-note').filter({ hasText: 'Файлы для коллег' });
   await expect(note.locator('.attachment')).toHaveCount(2);
+  const attachment = note.getByRole('button', { name: /Проект.png/ });
+  const background = await attachment.evaluate(element => getComputedStyle(element).backgroundImage);
+  await attachment.hover();
+  await expect(attachment).toHaveCSS('background-image', background);
+  await note.screenshot({ path: '.local/attachment-note-mobile.png', animations: 'disabled' });
+  await page.setViewportSize({ width: 1242, height: 900 });
+  await note.screenshot({ path: '.local/attachment-note-desktop.png', animations: 'disabled' });
+  await page.setViewportSize({ width: 390, height: 844 });
   await note.getByRole('button', { name: /Проект.png/ }).click();
   const modal = page.getByRole('dialog');
   const preview = modal.getByRole('img', { name: 'Проект.png', exact: true });

@@ -21,7 +21,7 @@
   filter: drop-shadow(0 1px 0 #a38b6140);
 }
 .paper-thickness { transform: translate(.4px, 1.3px); background: linear-gradient(90deg, #ab9770, #f9f0d8 24%, #bca57b 70%, #f4e7cb); }
-.paper-photo { position: absolute; inset: 0; background: url('/assets/paper-crumpled-v2.png') var(--texture-position) / var(--texture-size, 130% 130%) no-repeat; mix-blend-mode: multiply; filter: grayscale(1) contrast(1.1) brightness(1.01); opacity: .86; }
+.paper-photo { position: absolute; inset: 0; background: url('/assets/paper-crumpled-v2.webp') var(--texture-position) / var(--texture-size, 130% 130%) no-repeat; mix-blend-mode: multiply; filter: grayscale(1) contrast(1.1) brightness(1.01); opacity: .86; }
 .paper-grain { position: absolute; inset: 0; background: url('/assets/paper-grain.svg') 0 0 / 180px; mix-blend-mode: multiply; opacity: .5; }
 .paper-pattern { position: absolute; inset: 0; color: #9c7a36; opacity: .46; pointer-events: none; mask-image: linear-gradient(110deg, #000d, #000b 38%, #000); }
 .pattern-mint { color: #4f7a56; }.pattern-pink { color: #b16c7d; }.pattern-blue { color: #557fa5; }

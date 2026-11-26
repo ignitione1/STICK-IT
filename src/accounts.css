@@ -17,7 +17,7 @@
 .recipient-checks { max-height: 150px; overflow-y: auto; margin-bottom: 15px; }.admin-role-label { color: #8b94a1; font-size: 12px; }
 @media (max-width: 600px) { .legacy-copy { flex-wrap: wrap; }.legacy-copy > div { flex-basis: 100%; }.archive-filters { padding: 10px 16px; }.archive-filters label { flex: 1; }.archive-filters input,.archive-filters select { width: 100%; max-width: none; } }
 .login-art { display: grid; place-items: center; overflow: hidden; background: #e7e9e3 url('/assets/board-grain.svg'); }
-.login-paper { width: 350px; min-height: 365px; display: flex; flex-direction: column; gap: 32px; padding: 34px 36px; background: #f7efd3 url('/assets/paper-crumpled-v2.png') center / cover; transform: rotate(-6deg); box-shadow: 4px 18px 30px #4c453b33; border-radius: 3px 6px 24px 3px; }
+.login-paper { width: 350px; min-height: 365px; display: flex; flex-direction: column; gap: 32px; padding: 34px 36px; background: #f7efd3 url('/assets/paper-crumpled-v2.webp') center / cover; transform: rotate(-6deg); box-shadow: 4px 18px 30px #4c453b33; border-radius: 3px 6px 24px 3px; }
 .login-paper > span { font: italic 34px/1.35 Georgia, serif; }.login-paper > small { font-size: 10px; letter-spacing: 2px; margin-top: auto; }
 .login-card { width: min(410px, calc(100% - 48px)); margin: auto; padding: 40px 0; }.account-wordmark { display: flex; align-items: center; gap: 10px; font-size: 23px; font-weight: 700; margin-bottom: 60px; }
 .account-eyebrow { display: block; color: #788474; font-size: 10px; font-weight: 700; letter-spacing: 1.6px; margin-bottom: 12px; }.login-card h1 { font-size: 34px; letter-spacing: -1px; margin: 0 0 12px; }.login-card > p { color: #7c8491; line-height: 1.6; margin-bottom: 28px; }
