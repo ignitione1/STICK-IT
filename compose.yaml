@@ -9,6 +9,8 @@ x-logging: &logging
 services:
   web:
     image: ${WEB_IMAGE:-stick-it-web:2.3.0}
+    environment:
+      TRUSTED_HOST_PROXY: ${TRUSTED_HOST_PROXY:-}
     restart: unless-stopped
     init: true
     ports:

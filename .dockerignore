@@ -6,3 +6,4 @@
 !deploy/web.Dockerfile
 !deploy/nginx/
 !deploy/nginx/nginx.conf
+!deploy/nginx/start.sh
