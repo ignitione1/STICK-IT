@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pin, ArrowRight, LockKeyhole } from 'lucide-react';
 import { api } from '../api';
 import type { Account } from '../api';
+import PasswordField from './PasswordField';
 
 export default function Login({ onLogin }: { onLogin: (value: { employee: Account; csrfToken: string }) => Promise<void> }) {
   const [login, setLogin] = useState('');
@@ -15,7 +16,7 @@ export default function Login({ onLogin }: { onLogin: (value: { employee: Accoun
         setPassword(''); await onLogin(session);
       } catch (failure) { setError(failure instanceof Error ? failure.message : 'Не удалось связаться с сервером'); } finally { setBusy(false); } }}>
         <label className="form-field">Логин<input autoFocus autoComplete="username" value={login} onChange={event => setLogin(event.target.value)} required maxLength={128} /></label>
-        <label className="form-field">Пароль<input type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} required maxLength={128} /></label>
+        <PasswordField label="Пароль" autoComplete="current-password" value={password} onChange={setPassword} required />
         {error && <p className="account-error" role="alert">{error}</p>}
         <button className="primary-button account-submit" disabled={busy}>{busy ? 'Входим…' : 'Войти'}<ArrowRight size={17} /></button>
       </form><div className="login-hint"><LockKeyhole size={17} /><p>Учётную запись создаёт администратор.<br />За доступом и сменой пароля обратитесь к нему.</p></div>

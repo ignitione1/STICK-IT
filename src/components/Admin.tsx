@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { ArrowLeft, Plus, Users, Building2, Pencil, Trash2 } from 'lucide-react';
 import { api } from '../api';
 import type { Account, Membership, ServerDepartment } from '../api';
 import Modal from './Modal';
+import PasswordField from './PasswordField';
 
 type ManagedAccount = Omit<Account, 'departments'>;
 type People = { employees: ManagedAccount[]; memberships: (Membership & { employeeId: string })[] };
@@ -23,7 +24,7 @@ function PersonForm({ person, departments, memberships, onSubmit }: { person?: M
   } catch (failure) { setError(failure instanceof Error ? failure.message : 'Не удалось сохранить'); } finally { setBusy(false); } }}>
     <label className="form-field">Имя сотрудника<input value={name} onChange={event => setName(event.target.value)} required maxLength={200} /></label>
     <label className="form-field">Логин<input value={login} onChange={event => setLogin(event.target.value)} required minLength={3} maxLength={64} autoComplete="off" pattern="[a-zA-Z0-9][a-zA-Z0-9._-]*" /></label>
-    <label className="form-field">{person ? 'Новый пароль (оставьте пустым, чтобы сохранить)' : 'Пароль'}<input type="password" autoComplete="new-password" value={password} onChange={event => setPassword(event.target.value)} required={!person} minLength={6} maxLength={128} /></label>
+    <PasswordField label={person ? 'Новый пароль (оставьте пустым, чтобы сохранить)' : 'Пароль'} autoComplete="new-password" value={password} onChange={setPassword} required={!person} minLength={6} />
     <p className="admin-role-label">{role === 'admin' ? 'Администратор · создан отдельной командой' : 'Сотрудник'}</p>
     <fieldset className="department-checks"><legend>Отделы сотрудника</legend>{departments.map(department => <label key={department.id}><input type="checkbox" checked={ids.includes(department.id)} onChange={event => {
       const next = event.target.checked ? [...ids, department.id] : ids.filter(id => id !== department.id); setIds(next);
@@ -57,12 +58,16 @@ export default function Admin({ onClose, onChanged }: { onClose: () => void; onC
   const [editDepartment, setEditDepartment] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(false);
+  const [search, setSearch] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
   async function reload() {
     const [staff, divisions] = await Promise.all([api<People>('/admin/employees'), api<ServerDepartment[]>('/admin/departments')]);
     setPeople(staff); setDepartments(divisions); setLoaded(true);
   }
   useEffect(() => { void reload().catch(error => setError(error.message)); }, []);
   const activeDepartments = departments.filter(department => department.isActive);
+  const visiblePeople = people.employees.filter(person => person.displayName.toLocaleLowerCase('ru').includes(search.trim().toLocaleLowerCase('ru')) &&
+    (!departmentFilter || people.memberships.some(member => member.employeeId === person.id && member.departmentId === departmentFilter)));
   async function saved() { await reload(); await onChanged(); }
   return <main className="account-page"><div className="account-page-inner">
     <button className="account-back" onClick={onClose}><ArrowLeft size={17} />К доске</button>
@@ -71,7 +76,12 @@ export default function Admin({ onClose, onChanged }: { onClose: () => void; onC
     {error && <p role="alert" className="account-error">{error}</p>}
     {!loaded ? <p role="status">Загружаем команду…</p> : tab === 'employees' ? <section className="account-section"><div className="admin-section-heading"><div><h2>Сотрудники</h2><p>Имена, доступ и принадлежность к отделам.</p></div><button className="primary-button" disabled={!activeDepartments.length} onClick={() => setEditPerson('new')}><Plus size={16} />Добавить сотрудника</button></div>
       {!activeDepartments.length && <p className="admin-empty">Сначала создайте отдел во вкладке «Отделы».</p>}
-      <div className="admin-list">{people.employees.map(person => <div className="admin-person" key={person.id}><span className="admin-person-icon">{person.displayName[0]}</span><div><strong>{person.displayName}</strong><small>@{person.login} · {person.role === 'admin' ? 'Администратор' : 'Сотрудник'}</small><span>{people.memberships.filter(member => member.employeeId === person.id).map(member => departments.find(department => department.id === member.departmentId)?.name).filter(Boolean).join(', ') || 'Отдел пока не назначен'}</span></div><span className={`account-status ${person.isActive ? '' : 'inactive'}`}>{person.isActive ? 'Активен' : 'Заблокирован'}</span><button className="icon-button" onClick={() => setEditPerson(person.id)} aria-label={`Изменить сотрудника ${person.displayName}`}><Pencil size={17} /></button></div>)}</div>
+      <div className="admin-filters"><label className="form-field">Поиск сотрудника<input type="search" list="employee-names" placeholder="Введите имя" value={search} onChange={event => setSearch(event.target.value)} /></label><datalist id="employee-names">{people.employees.filter(person => !departmentFilter || people.memberships.some(member => member.employeeId === person.id && member.departmentId === departmentFilter)).map(person => <option key={person.id} value={person.displayName} />)}</datalist><label className="form-field">Отдел<select aria-label="Отдел" value={departmentFilter} onChange={event => setDepartmentFilter(event.target.value)}><option value="">Все отделы</option>{departments.map(department => <option key={department.id} value={department.id}>{department.name}{department.isActive ? '' : ' (неактивный)'}</option>)}</select></label></div>
+      <div className="admin-list">{visiblePeople.map(person => {
+        const memberships = people.memberships.filter(member => member.employeeId === person.id);
+        const primaryDepartment = departments.find(department => department.id === memberships.find(member => member.isPrimary)?.departmentId);
+        return <div className="admin-person" key={person.id} style={{ borderLeftColor: primaryDepartment?.color ?? '#d7d9dc' }}><span className="admin-person-icon">{person.displayName[0]}</span><div><strong>{person.displayName}</strong><small>@{person.login} · {person.role === 'admin' ? 'Администратор' : 'Сотрудник'}</small><span>{memberships.map(member => departments.find(department => department.id === member.departmentId)?.name).filter(Boolean).join(', ') || 'Отдел пока не назначен'}</span></div><span className={`account-status ${person.isActive ? '' : 'inactive'}`}>{person.isActive ? 'Активен' : 'Заблокирован'}</span><button className="icon-button" onClick={() => setEditPerson(person.id)} aria-label={`Изменить сотрудника ${person.displayName}`}><Pencil size={17} /></button></div>;
+      })}{!visiblePeople.length && <p className="admin-empty">Сотрудники не найдены</p>}</div>
     </section> : <section className="account-section"><div className="admin-section-heading"><div><h2>Отделы</h2><p>При создании отдела его доска появляется автоматически.</p></div><button className="primary-button" onClick={() => setEditDepartment('new')}><Plus size={16} />Добавить отдел</button></div><div className="department-cards">
       {activeDepartments.map(department => <article className="department-card" key={department.id}><span className="department-dot" style={{ background: department.color }} /><h3>{department.name}</h3><small>{department.code.toUpperCase()}</small><div><button className="icon-button" onClick={() => setEditDepartment(department.id)} aria-label={`Изменить отдел ${department.name}`}><Pencil size={17} /></button><button className="icon-button" aria-label={`Удалить отдел ${department.name}`} onClick={async () => {
         if (!window.confirm(`Убрать отдел «${department.name}» из активного списка? История сохранится.`)) return;
