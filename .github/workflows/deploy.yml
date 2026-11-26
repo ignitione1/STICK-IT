@@ -2,14 +2,10 @@ name: Ручной деплой на VPS
 
 on:
   workflow_dispatch:
-    inputs:
-      release_sha:
-        description: Полный SHA коммита с успешно собранными образами
-        required: true
-        type: string
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: stickit-vps-deploy
@@ -21,15 +17,21 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - name: Подключиться к VPS и запустить выбранный выпуск
+      - name: Проверить сборку последней версии и запустить деплой
         env:
-          RELEASE_SHA: ${{ inputs.release_sha }}
+          GH_TOKEN: ${{ github.token }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_HOST_KEY: ${{ secrets.DEPLOY_HOST_KEY }}
         run: |
           set -eu
-          printf '%s' "$RELEASE_SHA" | grep -Eq '^[0-9a-f]{40}$' || { echo 'Укажите полный SHA в нижнем регистре'; exit 1; }
+          RELEASE_SHA=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          printf '%s' "$RELEASE_SHA" | grep -Eq '^[0-9a-f]{40}$' || { echo 'Неверный SHA последнего коммита'; exit 1; }
+          builds=$(gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/images.yml/runs" \
+            -f branch=main -f head_sha="$RELEASE_SHA" -f status=success -f per_page=100 \
+            --jq '[.workflow_runs[] | select(.event == "push" or .event == "workflow_dispatch")] | length')
+          [ "$builds" -gt 0 ] || { echo 'Для последнего коммита main пока нет успешной сборки образов'; exit 1; }
+          echo "Деплой версии $RELEASE_SHA"
           test -n "$DEPLOY_HOST" && test -n "$DEPLOY_KEY" && test -n "$DEPLOY_HOST_KEY"
           printf '%s' "$DEPLOY_HOST" | grep -Eq '^[a-zA-Z0-9.-]+$' || { echo 'Неверный адрес VPS'; exit 1; }
           umask 077

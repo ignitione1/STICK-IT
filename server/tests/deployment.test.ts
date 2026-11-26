@@ -97,8 +97,11 @@ test('деплой запускается только вручную и исп�
   const config = workflow.toJS();
   assert.deepEqual(Object.keys(config.on), ['workflow_dispatch']);
   assert.equal(config.permissions.contents, 'read');
+  assert.equal(config.permissions.actions, 'read');
   assert.equal(config.concurrency['cancel-in-progress'], false);
   assert.equal(config.jobs.deploy.if, "github.ref == 'refs/heads/main'");
+  assert.equal(config.on.workflow_dispatch, null);
+  assert.match(read('.github/workflows/deploy.yml'), /head_sha="\$RELEASE_SHA"/);
   const script = read('deploy/scripts/deploy-release.sh');
   assert.match(script, /git merge-base --is-ancestor "\$release" origin\/main/);
   assert.match(script, /git diff --quiet "\$previous" "\$release" -- server\/drizzle/);
