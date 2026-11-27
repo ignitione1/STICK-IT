@@ -23,10 +23,31 @@ git diff --quiet "$previous" "$release" -- server/drizzle || { echo 'Database mi
 
 api="ghcr.io/ignitione1/stick-it-api:$release"
 web="ghcr.io/ignitione1/stick-it-web:$release"
-docker pull "$api"
-docker pull "$web"
+
+# Stop an unresponsive client and retry without touching the running containers.
+# Docker retains downloaded layers, so a subsequent attempt can reuse them.
+pull_image() {
+  image=$1
+  attempt=1
+  while [ "$attempt" -le 3 ]; do
+    echo "Pulling image (attempt $attempt/3): $image"
+    if timeout --kill-after=10s 120s docker pull "$image"; then
+      echo "Image ready: $image"
+      return 0
+    else
+      status=$?
+    fi
+    echo "Image pull failed or timed out (exit $status): $image" >&2
+    [ "$attempt" -lt 3 ] || return "$status"
+    attempt=$((attempt + 1))
+    sleep 5
+  done
+}
+pull_image "$api"
+pull_image "$web"
 
 # A failed backup or failed application restart prevents the deployment.
+echo 'Images ready; starting pre-deployment backup'
 sh deploy/scripts/backup.sh /opt/stick-it/backups/scheduled
 env_backup=$(mktemp /opt/stick-it-ops/deploy-env.XXXXXXXX)
 cp -p .env "$env_backup"
