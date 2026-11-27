@@ -40,7 +40,7 @@ export default function StickyNote({ note, dragHandle, onToggle, onReply, onAtta
     '--sheet-edge': paper.edge, '--wear-corner-size': paper.cornerSize,
     '--texture-position': paper.texturePosition, '--texture-size': paper.textureSize,
   } as CSSProperties;
-  return <article className={`sticky-note preset-${presetId} paper-wear-${paper.variant} paper-corner-${paper.cornerSide} ${note.parentId && !standalone ? 'reply-note' : ''}`} style={style} data-note-id={note.id} data-paper-variant={paper.variant} aria-label={`Записка: ${employee.name}`}>
+  return <article className={`sticky-note preset-${presetId} paper-wear-${paper.variant} paper-corner-${paper.cornerSide} ${note.done && !readOnly ? 'note-completed' : ''} ${note.parentId && !standalone ? 'reply-note' : ''}`} style={style} data-note-id={note.id} data-paper-variant={paper.variant} aria-label={`Записка: ${employee.name}`}>
     <PaperSurface preset={presetId} fastening={note.parentId && !standalone ? undefined : note.fastening ?? preset.fastening} />
     {(!note.parentId || standalone) && <Fastening kind={note.fastening ?? preset.fastening} hue={employee.id === 'anna' ? 3 : employee.preset === 'blue' ? 199 : 44} />}
     {dragHandle}

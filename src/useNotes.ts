@@ -3,7 +3,7 @@ import { api } from './api';
 import type { StickyNoteData } from './types';
 
 export interface NoteDraft {
-  id: string; boardId: string; text: string; parentId?: string; x?: number; y?: number; rotation?: number; paperSeed?: number;
+  id: string; boardId: string; text: string; parentId?: string; x?: number; y?: number; rotation?: number; paperSeed?: number; autoPlace?: boolean;
   recipientEmployeeIds?: string[]; recipientDepartmentIds?: string[];
   files?: File[];
   keepAttachmentIds?: string[];

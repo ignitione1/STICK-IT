@@ -13,7 +13,7 @@ import { AccountError } from '../accounts/security.js';
 import { parse, parseId } from '../accounts/validation.js';
 import { disposition, hashStoredFile, maxFileSize, maxFiles, maxTotalSize, openFile, receiveFiles, removeFiles } from './files.js';
 import type { SavedFile } from './files.js';
-import { sendNotePush } from '../push/routes.js';
+import { sendCompletionPush, sendNotePush } from '../push/routes.js';
 
 type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
 const point = z.number().finite().min(-1000000).max(1000000);
@@ -26,6 +26,7 @@ const createInput = z.object({
   text: z.string().trim().min(1).max(2000), x: point.default(80), y: point.default(100),
   rotation: z.number().finite().min(-180).max(180).default(-1.5),
   paperSeed: z.number().int().min(0).max(4294967295).default(() => randomInt(4294967296)),
+  autoPlace: z.boolean().default(false),
   recipientEmployeeIds: z.array(z.string().uuid()).max(100).default([]),
   recipientDepartmentIds: z.array(z.string().uuid()).max(100).default([]),
 }).strict();
@@ -162,8 +163,24 @@ export const stickerRoutes: FastifyPluginAsync<{ env: Env }> = async (app, { env
       }
       if (personal.length && (await tx.select().from(employees).where(and(inArray(employees.id, personal), eq(employees.isActive, true)))).length !== personal.length) return failure(400, 'Получатель не найден или заблокирован');
       if (groups.length && (await tx.select().from(departments).where(and(inArray(departments.id, groups), eq(departments.isActive, true)))).length !== groups.length) return failure(400, 'Отдел-получатель не найден или удалён');
+      let x = input.x;
+      if (!parentId && input.autoPlace) {
+        // Reserve a full vertical strip per thread: existing groups can have arbitrary heights.
+        // The board lock above serializes placement with other creations and moves.
+        const existingNotes = await tx.select().from(stickers).where(eq(stickers.boardId, input.boardId));
+        const roots = existingNotes.filter(item => !item.parentId && !item.archivedAt);
+        const intervals = roots.map(root => {
+          const replies = existingNotes.filter(item => item.parentId === root.id && !item.archivedAt);
+          const right = Math.max(300, ...replies.map(item => item.x + 300));
+          return { left: root.x - 150, right: root.x + right + 150 };
+        }).sort((a, b) => a.left - b.left);
+        for (const interval of intervals) {
+          if (x + 450 > interval.left && x - 150 < interval.right) x = interval.right + 150;
+        }
+        if (x > 1000000) return failure(409, 'На доске закончилось место для новой записки');
+      }
       const [note] = await tx.insert(stickers).values({ id: input.id, boardId: input.boardId, authorId: actor.id, authorDepartmentId: origin.id,
-        parentId, replyOrder, text: input.text, x: parentId ? 26 : input.x, y: parentId ? 0 : input.y,
+        parentId, replyOrder, text: input.text, x: parentId ? 26 : x, y: parentId ? 0 : input.y,
         rotation: input.rotation, zIndex: parentId ? 0 : await nextLayer(tx, input.boardId), paperStyle: actor.paperStyle, fastening: actor.fastening, paperSeed: input.paperSeed }).returning();
       if (personal.length) await tx.insert(stickerEmployeeRecipients).values(personal.map(employeeId => ({ stickerId: note.id, employeeId })));
       if (groups.length) await tx.insert(stickerDepartmentRecipients).values(groups.map(departmentId => ({ stickerId: note.id, departmentId })));
@@ -301,7 +318,7 @@ export const stickerRoutes: FastifyPluginAsync<{ env: Env }> = async (app, { env
   app.patch<{ Params: { id: string } }>('/stickers/:id/marks', { preHandler: mutation }, async request => {
     const input = parse(z.object({ read: z.boolean().optional(), done: z.boolean().optional(), revision }).strict()
       .refine(value => value.read !== undefined || value.done !== undefined), request.body);
-    return withNote(request, parseId(request.params.id), async (tx, note, root, active) => {
+    const result = await withNote(request, parseId(request.params.id), async (tx, note, root, active) => {
       requireActive(note, root, active); requireRevision(note, input.revision);
       const actorId = request.actor!.employee.id;
       if (note.authorId !== actorId && !await isRecipient(tx, note.id, actorId)) return failure(403, 'Отметки меняет только автор или адресат');
@@ -313,8 +330,10 @@ export const stickerRoutes: FastifyPluginAsync<{ env: Env }> = async (app, { env
         readAt: read ? note.read ? note.readAt : now : null, readById: read ? note.read ? note.readById : actorId : null,
         doneAt: done ? note.done ? note.doneAt : now : null, doneById: done ? note.done ? note.doneById : actorId : null,
         revision: note.revision + 1 }).where(eq(stickers.id, note.id)).returning();
-      return { id: updated.id, revision: updated.revision };
+      return { id: updated.id, revision: updated.revision, notifyAuthor: !note.done && done && actorId !== note.authorId };
     });
+    if (result.notifyAuthor) void sendCompletionPush(database(), env, result.id, result.revision).catch(() => app.log.warn('Не удалось отправить push-уведомление о выполнении'));
+    return { id: result.id, revision: result.revision };
   });
   app.patch<{ Params: { id: string } }>('/stickers/:id/position', { preHandler: mutation }, async request => {
     const input = parse(z.object({ x: point, y: point }).strict(), request.body);

@@ -11,6 +11,7 @@ export function useNotificationSound(notes: StickyNoteData[], ready: boolean, em
   const active = useRef(enabled);
   active.current = enabled;
   const seen = useRef<Set<string> | null>(null);
+  const doneState = useRef(new Map<string, boolean>());
   const lastPushSound = useRef(0);
 
   async function playMessageSound(audio: AudioContext) {
@@ -65,12 +66,15 @@ export function useNotificationSound(notes: StickyNoteData[], ready: boolean, em
 
   useEffect(() => {
     if (!ready) return;
-    if (!seen.current) { seen.current = new Set(notes.map(note => note.id)); return; }
+    if (!seen.current) { seen.current = new Set(notes.map(note => note.id)); doneState.current = new Map(notes.map(note => [note.id, note.done])); return; }
     const incoming = notes.some(note => !seen.current!.has(note.id)
       && !note.isArchived && note.isRecipient && !note.read && note.authorId !== employeeId);
+    const completed = notes.some(note => seen.current!.has(note.id) && doneState.current.get(note.id) === false
+      && note.done && note.authorId === employeeId && !!note.doneById && note.doneById !== employeeId);
     for (const note of notes) seen.current.add(note.id);
+    doneState.current = new Map(notes.map(note => [note.id, note.done]));
     // One sound for a batch, never for edits, restored notes or a read flag being cleared.
-    if (incoming && enabled && !pushEnabled && context.current) void playMessageSound(context.current);
+    if ((incoming || completed) && enabled && !pushEnabled && context.current) void playMessageSound(context.current);
   }, [notes, ready, employeeId, enabled, pushEnabled]);
 
   function toggle() {

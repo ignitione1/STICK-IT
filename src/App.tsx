@@ -15,6 +15,7 @@ import Board from './components/Board';
 import NoteComposer from './components/NoteComposer';
 import AttachmentPreview from './components/AttachmentPreview';
 import ArchiveView from './components/ArchiveView';
+import Modal from './components/Modal';
 
 interface ComposerState { boardId: DepartmentId; parent?: StickyNoteData; editing?: StickyNoteData; x?: number; y?: number }
 
@@ -51,13 +52,14 @@ export default function App() {
   const push = usePush(currentEmployee.id, () => sound.play(), () => sound.isEnabled(), () => sound.isReady());
   const sound = useNotificationSound(notes, sync.hasLoaded, currentEmployee.id, push.enabled);
   const homeBoard = departments.find(item => item.id === currentEmployee.department)?.boardId ?? departments[0]?.boardId ?? '';
-  const [view, setView] = useState<ViewId>(() => new URLSearchParams(window.location.search).get('view') === 'notifications' ? 'notifications' : homeBoard);
+  const [view, setView] = useState<ViewId>(() => { const requested = new URLSearchParams(window.location.search).get('view'); return requested === 'notifications' || requested === 'mine' ? requested : homeBoard; });
   const [query, setQuery] = useState('');
   const [department, setDepartment] = useState<DepartmentId | 'all'>('all');
   const [filter, setFilter] = useState<NoteFilter>('all');
   const [menuOpen, setMenuOpen] = useState(false);
   const [composer, setComposer] = useState<ComposerState | null>(null);
   const [attachment, setAttachment] = useState<StickyNoteData | null>(null);
+  const [archiveTarget, setArchiveTarget] = useState<StickyNoteData | null>(null);
   const [sender, setSender] = useState('');
   const [receiver, setReceiver] = useState('');
   const [from, setFrom] = useState('');
@@ -70,7 +72,9 @@ export default function App() {
   useEffect(() => {
     const open = () => setView('notifications');
     window.addEventListener('stickit:open-notifications', open);
-    return () => window.removeEventListener('stickit:open-notifications', open);
+    const openMine = () => setView('mine');
+    window.addEventListener('stickit:open-mine', openMine);
+    return () => { window.removeEventListener('stickit:open-notifications', open); window.removeEventListener('stickit:open-mine', openMine); };
   }, []);
   useEffect(() => {
     if (!['mine', 'notifications', 'archive'].includes(view) && !departments.some(item => item.boardId === view)) setView(homeBoard);
@@ -121,16 +125,15 @@ export default function App() {
     if (!composer) return;
     if (composer.editing) await sync.edit(composer.editing, draft.text, draft.files, draft.keepAttachmentIds);
     else await sync.create({ ...draft, parentId: composer.parent?.parentId ?? composer.parent?.id,
-      x: composer.x ?? 80 + (notes.filter(note => note.boardId === draft.boardId && !note.parentId).length % 4) * 32,
-      y: composer.y ?? 100, rotation: composer.parent ? 1.2 : -1.5, paperSeed: createPaperSeed() });
+      x: composer.x ?? 80, y: composer.y ?? 100, autoPlace: !composer.parent,
+      rotation: composer.parent ? 1.2 : -1.5, paperSeed: createPaperSeed() });
     setComposer(null);
     if (!composer.editing) changeView(draft.boardId);
     window.setTimeout(() => document.querySelector('[data-note-id="' + draft.id + '"]')?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' }), 80);
   }
   function archive(note: StickyNoteData, archived: boolean) {
-    if (archived && !window.confirm(note.parentId ? 'Отправить этот ответ в архив? Исходная записка и остальные ответы останутся на доске.'
-      : 'Отправить записку и всю её цепочку ответов в архив? Отдельно архивированные ответы сохранят свой статус.')) return;
-    void sync.archive(note, archived).catch(() => {});
+    if (archived) setArchiveTarget(note);
+    else void sync.archive(note, false).catch(() => {});
   }
   function openAttachment(note: StickyNoteData) {
     const file = note.attachment;
@@ -184,5 +187,17 @@ export default function App() {
     </main>
     {composer && <NoteComposer boardId={composer.boardId} parent={composer.parent} editing={composer.editing} onClose={() => setComposer(null)} onSubmit={createNote} />}
     {attachment?.attachment && <AttachmentPreview file={attachment.attachment} onClose={() => setAttachment(null)} />}
+    {archiveTarget && <Modal title="Перенести в архив?" className="archive-confirm-modal" onClose={() => setArchiveTarget(null)}>
+      <p>{archiveTarget.parentId ? 'Этот ответ попадёт в архив. Исходная записка и остальные ответы останутся на доске.'
+        : 'Записка и вся её цепочка ответов попадут в архив. Отдельно архивированные ответы сохранят свой статус.'}</p>
+      <div className="archive-confirm-actions">
+        <button className="secondary-button" autoFocus onClick={() => setArchiveTarget(null)}>Отмена</button>
+        <button className="primary-button" onClick={() => {
+          const note = notes.find(item => item.id === archiveTarget.id);
+          setArchiveTarget(null);
+          if (note) void sync.archive(note, true).catch(() => {});
+        }}>Перенести в архив</button>
+      </div>
+    </Modal>}
   </div>;
 }

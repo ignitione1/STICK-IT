@@ -33,6 +33,7 @@ test('вложения: выбор, просмотр изображения, с�
   const background = await attachment.evaluate(element => getComputedStyle(element).backgroundImage);
   await attachment.hover();
   await expect(attachment).toHaveCSS('background-image', background);
+  await expect(attachment).toHaveCSS('outline-style', 'solid');
   await note.screenshot({ path: '.local/attachment-note-mobile.png', animations: 'disabled' });
   await page.setViewportSize({ width: 1242, height: 900 });
   await note.screenshot({ path: '.local/attachment-note-desktop.png', animations: 'disabled' });
@@ -98,8 +99,8 @@ test('вложения: выбор, просмотр изображения, с�
     await shared.getByRole('button', { name: /Проект.png/ }).click();
     await expect(colleague.getByRole('img', { name: 'Проект.png', exact: true })).toBeVisible();
   } finally { await other.close(); }
-  page.once('dialog', dialog => { void dialog.accept(); });
   await note.getByRole('button', { name: 'В архив', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Перенести в архив?' }).getByRole('button', { name: 'Перенести в архив' }).click();
   await expect(note).toHaveCount(0);
   await page.getByRole('button', { name: 'Архив', exact: true }).click();
   await page.getByRole('button', { name: 'Открыть архив: IT-отдел', exact: true }).click();

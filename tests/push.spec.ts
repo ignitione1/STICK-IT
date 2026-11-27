@@ -41,3 +41,22 @@ test('push и обновление доски не дублируют звук; 
   await page.evaluate(noteId => navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: { type: 'stickit-push', id: noteId } })), id);
   expect(await count()).toBe(2);
 });
+
+test('устаревшая подписка с другим ключом заменяется при подключении', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(Notification, 'permission', { configurable: true, value: 'granted' });
+    const state = { unsubscribed: 0, subscribed: 0 };
+    Object.assign(window, { pushSetupState: state });
+    const channel = new EventTarget();
+    const fresh = { toJSON: () => ({ endpoint: 'https://fcm.googleapis.com/fcm/send/test', keys: { p256dh: 'A'.repeat(87), auth: 'A'.repeat(22) } }) };
+    const old = { options: { applicationServerKey: new Uint8Array([9]).buffer }, unsubscribe: async () => { state.unsubscribed++; return true; } };
+    const registration = { active: { postMessage() {} }, pushManager: { getSubscription: async () => old, subscribe: async () => { state.subscribed++; return fresh; } } };
+    Object.assign(channel, { register: async () => registration, getRegistration: async () => registration, ready: Promise.resolve(registration) });
+    Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: channel });
+  });
+  await page.route('**/api/push/config', route => route.fulfill({ json: { publicKey: 'AQID' } }));
+  await page.route('**/api/push/subscription', route => route.fulfill({ json: { ok: true } }));
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Push-уведомления на рабочем столе' })).toHaveAttribute('aria-pressed', 'true');
+  expect(await page.evaluate(() => (window as unknown as { pushSetupState: unknown }).pushSetupState)).toEqual({ unsubscribed: 1, subscribed: 1 });
+});

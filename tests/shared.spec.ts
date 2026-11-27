@@ -25,9 +25,12 @@ test('два сотрудника видят общую записку, отве
     await expect(remote).toBeVisible({ timeout: 12000 });
     await expect(remote.getByRole('button', { name: 'Изменить', exact: true })).toHaveCount(0);
     await expect(remote.getByLabel('Готово')).toBeDisabled();
+    await expect(remote).not.toHaveClass(/note-completed/);
     await remote.getByLabel('Прочитано').check();
     await remote.getByLabel('Готово').check();
+    await expect(remote).toHaveClass(/note-completed/);
     await expect(original.getByLabel('Готово')).toBeChecked({ timeout: 12000 });
+    await expect(original).toHaveClass(/note-completed/);
     await original.getByRole('button', { name: 'Изменить', exact: true }).click();
     await anna.getByLabel('Текст записки').fill('Общая записка двух сотрудников — обновлено');
     await anna.getByRole('button', { name: 'Сохранить', exact: true }).click();
@@ -46,8 +49,8 @@ test('два сотрудника видят общую записку, отве
     await expect(group).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 25, 0)');
     await page.keyboard.press('Space');
     await expect(anna.locator('[data-group-id="' + id + '"]')).toHaveCSS('left', before + 25 + 'px', { timeout: 12000 });
-    anna.once('dialog', dialog => { void dialog.accept(); });
     await original.getByRole('button', { name: 'В архив', exact: true }).click();
+    await anna.getByRole('dialog', { name: 'Перенести в архив?' }).getByRole('button', { name: 'Перенести в архив' }).click();
     await expect(remote).toHaveCount(0, { timeout: 12000 });
     await page.getByRole('button', { name: 'Архив', exact: true }).click();
     await page.getByRole('button', { name: 'Открыть архив: IT-отдел', exact: true }).click();

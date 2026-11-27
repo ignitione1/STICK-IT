@@ -47,6 +47,8 @@ export interface StickyNoteData {
   busy?: boolean;
   read: boolean;
   done: boolean;
+  doneAt?: string | null;
+  doneById?: string | null;
   parentId?: string;
   attachment?: NoteAttachment;
   attachments?: NoteAttachment[];

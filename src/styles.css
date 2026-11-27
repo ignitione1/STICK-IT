@@ -71,7 +71,7 @@ button { transition: background-color .15s, box-shadow .15s; }
 .note-message mark { background: #716c5a13; color: inherit; font-size: 12px; font-weight: 600; padding: 0 3px; }
 .note-message strong { font-weight: 600; }
 .attachment { width: 100%; display: flex; align-items: center; gap: 10px; background: linear-gradient(#fffc, #fff9); margin: 11px 0 0; padding: 8px 10px; border: 1px solid #fff8; border-radius: 4px; box-shadow: 0 2px 2px #4934151f; text-align: left; }
-.attachment:hover { border-color: #fff; box-shadow: 0 1px 1px #fff9 inset, 0 2px 5px #49341538; }
+.attachment:hover, .attachment:focus-visible { border-color: #517daf; color: #183d65; outline: 2px solid #517dafaa; outline-offset: 1px; }
 .attachment > span { flex: 1; min-width: 0; }
 .attachment strong { display: block; font-size: 11px; font-weight: 600; overflow-wrap: anywhere; }
 .attachment small { display: block; font-size: 9px; letter-spacing: .7px; margin-top: 2px; }
@@ -114,6 +114,8 @@ button { transition: background-color .15s, box-shadow .15s; }
 .modal::backdrop { background: #29241d66; backdrop-filter: blur(3px); }
 .modal-heading { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 20px; }
 .modal-heading h2 { margin: 0; font-size: 20px; font-weight: 600; }
+.archive-confirm-modal p { margin: 0; color: #555b5d; line-height: 1.55; }
+.archive-confirm-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
 .icon-button { display: inline-flex; align-items: center; justify-content: center; background: transparent; width: 30px; height: 30px; padding: 4px; border-radius: 4px; }
 .icon-button:hover { background: #e8e0d4; }
 .composer-author { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }

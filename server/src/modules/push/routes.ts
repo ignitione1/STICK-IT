@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { and, eq, gt, isNull, ne, inArray } from 'drizzle-orm';
+import { and, eq, gt, isNull, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import webpush from 'web-push';
 import type { Env } from '../../config/env.js';
@@ -53,14 +53,25 @@ export async function sendNotePush(db: Database, env: Env, id: string, send: typ
     db.select({ id: employeeDepartments.employeeId }).from(stickerDepartmentRecipients).innerJoin(employeeDepartments, eq(employeeDepartments.departmentId, stickerDepartmentRecipients.departmentId)).where(eq(stickerDepartmentRecipients.stickerId, id)),
   ]);
   const ids = [...new Set([...individuals, ...groups].map(item => item.id))].filter(employeeId => employeeId !== note.authorId);
+  await sendToEmployees(db, env, ids, { id, reply: !!note.parentId }, send);
+}
+
+export async function sendCompletionPush(db: Database, env: Env, id: string, revision: number, send: typeof webpush.sendNotification = webpush.sendNotification) {
+  if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) return;
+  const [note] = await db.select().from(stickers).where(eq(stickers.id, id));
+  if (!note) return;
+  await sendToEmployees(db, env, [note.authorId], { id, completed: true, eventId: `${id}:done:${revision}` }, send);
+}
+
+async function sendToEmployees(db: Database, env: Env, ids: string[], payload: { id: string; reply?: boolean; completed?: boolean; eventId?: string }, send: typeof webpush.sendNotification) {
   if (!ids.length) return;
   const targets = await db.select({ endpoint: pushSubscriptions.endpoint, p256dh: pushSubscriptions.p256dh, auth: pushSubscriptions.auth, employeeId: pushSubscriptions.employeeId }).from(pushSubscriptions)
     .innerJoin(employees, eq(employees.id, pushSubscriptions.employeeId)).innerJoin(sessions, eq(sessions.id, pushSubscriptions.sessionId))
-    .where(and(inArray(pushSubscriptions.employeeId, ids), eq(employees.isActive, true), isNull(sessions.revokedAt), gt(sessions.expiresAt, new Date()), ne(employees.id, note.authorId)));
+    .where(and(inArray(pushSubscriptions.employeeId, ids), eq(employees.isActive, true), isNull(sessions.revokedAt), gt(sessions.expiresAt, new Date())));
   await Promise.all(targets.map(async target => {
     try {
-      await send({ endpoint: target.endpoint, keys: { p256dh: target.p256dh, auth: target.auth } }, JSON.stringify({ id, employeeId: target.employeeId, reply: !!note.parentId }), {
-        vapidDetails: { subject: env.APP_ORIGIN.startsWith('https:') ? env.APP_ORIGIN : 'mailto:admin@example.com', publicKey: env.VAPID_PUBLIC_KEY, privateKey: env.VAPID_PRIVATE_KEY }, TTL: 300, timeout: 10000,
+      await send({ endpoint: target.endpoint, keys: { p256dh: target.p256dh, auth: target.auth } }, JSON.stringify({ ...payload, employeeId: target.employeeId }), {
+        vapidDetails: { subject: env.APP_ORIGIN.startsWith('https:') ? env.APP_ORIGIN : 'mailto:admin@example.com', publicKey: env.VAPID_PUBLIC_KEY, privateKey: env.VAPID_PRIVATE_KEY }, TTL: 300, urgency: 'high', timeout: 10000,
       });
       deliveryStatus.set(target.employeeId, { result: 'accepted', at: new Date().toISOString() });
     } catch (error) {

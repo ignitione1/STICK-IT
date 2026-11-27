@@ -99,6 +99,14 @@ test('записки: адресаты, права, конфликты верс�
     assert.deepEqual(chain.filter(note => note.parentId).map(note => note.replyOrder), [0, 1]);
     assert.ok(chain.filter(note => note.parentId).every(note => note.x === 26 && note.y === 0));
     assert.equal(chain.find(note => note.id === id)!.x, 1500);
+    const positionedId = randomUUID();
+    assert.equal((await request(a, 'POST', '/stickers', { id: positionedId, boardId: board.id, text: 'Новая записка', x: 1500, y: 1200, autoPlace: true })).statusCode, 201);
+    const positioned = (await list()).find(note => note.id === positionedId)!;
+    assert.ok(positioned.x >= 1500 + 300);
+    assert.equal((await request(a, 'PATCH', '/stickers/' + positionedId + '/position', { x: 1500, y: 1200 })).statusCode, 200);
+    assert.equal((await list()).find(note => note.id === positionedId)!.x, 1500);
+    await db.delete(schema.stickerDepartmentRecipients).where(eq(schema.stickerDepartmentRecipients.stickerId, positionedId));
+    await db.delete(schema.stickers).where(eq(schema.stickers.id, positionedId));
     assert.equal((await list(c)).find(note => note.id === id)!.canArchive, true);
     assert.equal((await list(b)).find(note => note.id === id)!.canArchive, false);
     assert.equal((await request(b, 'PATCH', '/stickers/' + id + '/archive', { archived: true, revision: 4 })).statusCode, 403);

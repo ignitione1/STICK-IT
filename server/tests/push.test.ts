@@ -50,14 +50,21 @@ test('push-подписка требует сессию и CSRF, запреща�
     const [note] = await db.insert(schema.stickers).values({ boardId: board.id, authorId: people[0].id, authorDepartmentId: department.id, text: 'Текст не должен попадать в push', paperStyle: 'yellow', paperSeed: 1 }).returning();
     await db.insert(schema.stickerDepartmentRecipients).values({ stickerId: note.id, departmentId: department.id });
     await db.insert(schema.stickerEmployeeRecipients).values({ stickerId: note.id, employeeId: people[1].id });
-    const sent: Array<{ endpoint: string; payload: string }> = [];
-    const fake = async (subscription: { endpoint: string }, payload?: string | Buffer | null) => {
-      sent.push({ endpoint: subscription.endpoint, payload: String(payload) });
+    const sent: Array<{ endpoint: string; payload: string; urgency: string | undefined }> = [];
+    const fake = async (subscription: { endpoint: string }, payload?: string | Buffer | null, options?: { urgency?: string }) => {
+      sent.push({ endpoint: subscription.endpoint, payload: String(payload), urgency: options?.urgency });
       return { statusCode: 201, headers: {}, body: '' };
     };
-    const { sendNotePush } = await import('../src/modules/push/routes.js');
+    const { sendNotePush, sendCompletionPush } = await import('../src/modules/push/routes.js');
     await sendNotePush(db as unknown as Database, parseEnv({ VAPID_PUBLIC_KEY: 'x', VAPID_PRIVATE_KEY: 'y' }), note.id, fake);
     assert.deepEqual(sent.map(item => item.endpoint).sort(), ['https://fcm.googleapis.com/fcm/send/1', 'https://fcm.googleapis.com/fcm/send/2']);
     assert.ok(sent.every(item => !item.payload.includes(note.text) && JSON.parse(item.payload).reply === false));
+    assert.ok(sent.every(item => item.urgency === 'high'));
+    sent.length = 0;
+    await sendCompletionPush(db as unknown as Database, parseEnv({ VAPID_PUBLIC_KEY: 'x', VAPID_PRIVATE_KEY: 'y' }), note.id, 2, fake);
+    assert.deepEqual(sent.map(item => item.endpoint), ['https://fcm.googleapis.com/fcm/send/0']);
+    assert.equal(JSON.parse(sent[0].payload).completed, true);
+    assert.equal(JSON.parse(sent[0].payload).eventId, `${note.id}:done:2`);
+    assert.ok(!sent[0].payload.includes(note.text));
   } finally { await pg.close(); }
 });

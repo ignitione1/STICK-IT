@@ -1,8 +1,36 @@
 import { useEffect, useRef, useState } from 'react';
-import { api } from './api';
+import { api, ApiError } from './api';
 
 const supported = () => window.isSecureContext && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 const toKey = (value: string) => Uint8Array.from(atob(value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - value.length % 4) % 4)), char => char.charCodeAt(0));
+
+async function connectPush(publicKey: string, employeeId: string, soundEnabled: boolean) {
+  let registration: ServiceWorkerRegistration;
+  try {
+    await navigator.serviceWorker.register('/push-worker.js');
+    registration = await navigator.serviceWorker.ready;
+  } catch { throw new Error('Браузер не смог запустить службу уведомлений. Обновите страницу и повторите попытку.'); }
+  registration.active?.postMessage({ type: 'stickit-sound-preference', employeeId, enabled: soundEnabled });
+  let existing: PushSubscription | null;
+  try {
+    existing = await registration.pushManager.getSubscription();
+    const key = toKey(publicKey);
+    const previousKey = existing?.options?.applicationServerKey;
+    if (existing && previousKey && (new Uint8Array(previousKey).length !== key.length || !new Uint8Array(previousKey).every((byte, index) => byte === key[index]))) {
+      await existing.unsubscribe();
+      existing = null;
+    }
+    existing ??= await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+  } catch { throw new Error('Браузер не смог создать push-подписку. Проверьте подключение к сети и разрешение уведомлений.'); }
+  const data = existing.toJSON();
+  try { await api('/push/subscription', 'POST', { endpoint: data.endpoint, keys: data.keys }); }
+  catch (error) {
+    if (error instanceof ApiError && error.status === 400) throw new Error('Сервер не принял push-подписку этого браузера.');
+    throw new Error('Не удалось сохранить push-подписку на сервере. Повторите попытку.');
+  }
+}
+
+const setupError = (error: unknown) => error instanceof Error ? error.message : 'Не удалось подключить уведомления';
 
 export function usePush(employeeId: string, onSound: () => void, isSoundEnabled: () => boolean, isSoundReady: () => boolean) {
   const key = 'stickerboard:push:' + employeeId;
@@ -16,21 +44,16 @@ export function usePush(employeeId: string, onSound: () => void, isSoundEnabled:
       if (event.data?.type === 'stickit-push' && typeof event.data.id === 'string' && !delivered.current.has(event.data.id)) {
         delivered.current.add(event.data.id); onSound();
       }
-      if (event.data?.type === 'stickit-open') window.dispatchEvent(new Event('stickit:open-notifications'));
+      if (event.data?.type === 'stickit-open') window.dispatchEvent(new Event(event.data.completed ? 'stickit:open-mine' : 'stickit:open-notifications'));
     };
     navigator.serviceWorker.addEventListener('message', handler);
     void (async () => {
       if (Notification.permission !== 'granted' || localStorage.getItem(key) === '0') return;
       const { publicKey } = await api<{ publicKey: string }>('/push/config');
       if (!publicKey) return;
-      const registration = await navigator.serviceWorker.register('/push-worker.js');
-      await navigator.serviceWorker.ready;
-      registration.active?.postMessage({ type: 'stickit-sound-preference', employeeId, enabled: isSoundEnabled() });
-      const existing = await registration.pushManager.getSubscription() ?? await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: toKey(publicKey) });
-      const data = existing.toJSON();
-      await api('/push/subscription', 'POST', { endpoint: data.endpoint, keys: data.keys });
+      await connectPush(publicKey, employeeId, isSoundEnabled());
       setEnabled(true);
-    })().catch(() => setError('Не удалось подключить уведомления'));
+    })().catch(error => setError(setupError(error)));
     return () => navigator.serviceWorker.removeEventListener('message', handler);
   }, [employeeId]);
   async function toggle() {
@@ -47,14 +70,9 @@ export function usePush(employeeId: string, onSound: () => void, isSoundEnabled:
       if (permission !== 'granted') { setError('Разрешите уведомления в настройках браузера'); return; }
       const { publicKey } = await api<{ publicKey: string }>('/push/config');
       if (!publicKey) { setError('Уведомления пока не настроены на сервере'); return; }
-      const registration = await navigator.serviceWorker.register('/push-worker.js');
-      await navigator.serviceWorker.ready;
-      registration.active?.postMessage({ type: 'stickit-sound-preference', employeeId, enabled: isSoundEnabled() });
-      const existing = await registration.pushManager.getSubscription() ?? await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: toKey(publicKey) });
-      const data = existing.toJSON();
-      await api('/push/subscription', 'POST', { endpoint: data.endpoint, keys: data.keys });
+      await connectPush(publicKey, employeeId, isSoundEnabled());
       localStorage.setItem(key, '1'); setEnabled(true);
-    } catch { setError('Не удалось подключить уведомления'); }
+    } catch (failure) { setError(setupError(failure)); }
   }
   return { enabled, toggle, error };
 }

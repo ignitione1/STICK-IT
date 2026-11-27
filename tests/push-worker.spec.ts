@@ -18,4 +18,6 @@ test('service worker показывает короткое уведомлени�
   const employeeId = browserFixture.employees.find(person => person.legacyId === 'konstantin')!.id;
   await cdp.send('ServiceWorker.deliverPushMessage', { origin: 'http://127.0.0.1:5174', registrationId, data: JSON.stringify({ id: crypto.randomUUID(), employeeId, reply: true }) });
   await expect.poll(() => page.evaluate(async () => (await (await navigator.serviceWorker.ready).getNotifications()).map(note => ({ title: note.title, body: note.body, silent: note.silent })))).toContainEqual({ title: 'Stick-it', body: 'Вам ответили на записку', silent: true });
+  await cdp.send('ServiceWorker.deliverPushMessage', { origin: 'http://127.0.0.1:5174', registrationId, data: JSON.stringify({ id: crypto.randomUUID(), employeeId, completed: true, eventId: crypto.randomUUID() }) });
+  await expect.poll(() => page.evaluate(async () => (await (await navigator.serviceWorker.ready).getNotifications()).map(note => note.body))).toContain('Ваша задача выполнена');
 });

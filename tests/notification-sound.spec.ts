@@ -53,6 +53,14 @@ test('звук только новых входящих записок и отв
     authorId: author, isRecipient: true, isArchived: false, read: false }))];
   await refresh();
   await expect.poll(voices).toBe(3);
+  const ownId = crypto.randomUUID();
+  notes = [...notes, { ...template, id: ownId, authorId: self, done: false, doneById: null }];
+  await refresh();
+  notes = notes.map(note => note.id === ownId ? { ...note, done: true, doneById: author } : note);
+  await refresh();
+  await expect.poll(voices).toBe(4);
+  await refresh();
+  expect(await voices()).toBe(4);
   await page.screenshot({ path: '.local/notification-sound-desktop.png' });
   await page.reload();
   await expect(toggle).toHaveAttribute('aria-pressed', 'true');

@@ -39,13 +39,13 @@ self.addEventListener('push', event => {
     if (!data || typeof data.id !== 'string' || typeof data.employeeId !== 'string') return;
     const clients = await clientsForAccount(data.employeeId);
     const target = clients.find(item => item.canPlay && item.client.visibilityState === 'visible') || clients.find(item => item.canPlay);
-    if (target) target.client.postMessage({ type: 'stickit-push', id: data.id });
+    if (target) target.client.postMessage({ type: 'stickit-push', id: data.eventId || data.id });
     const soundEnabled = await soundPreference(data.employeeId).catch(() => true);
     await self.registration.showNotification('Stick-it', {
-      body: data.reply ? 'Вам ответили на записку' : 'Вам оставили записку',
-      tag: 'stickit-' + data.id,
+      body: data.completed ? 'Ваша задача выполнена' : data.reply ? 'Вам ответили на записку' : 'Вам оставили записку',
+      tag: 'stickit-' + (data.eventId || data.id),
       silent: !!target || soundEnabled === false,
-      data: { id: data.id },
+      data: { id: data.id, completed: data.completed === true },
     });
   })());
 });
@@ -54,7 +54,7 @@ self.addEventListener('notificationclick', event => {
   event.waitUntil((async () => {
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const target = windows[0];
-    if (target) { await target.focus(); target.postMessage({ type: 'stickit-open' }); }
-    else await self.clients.openWindow('/?view=notifications');
+    if (target) { await target.focus(); target.postMessage({ type: 'stickit-open', completed: event.notification.data?.completed === true }); }
+    else await self.clients.openWindow(event.notification.data?.completed ? '/?view=mine' : '/?view=notifications');
   })());
 });
