@@ -25,6 +25,7 @@ export default function NoteComposer({ boardId, parent, editing, onClose, onSubm
   const [files, setFiles] = useState<{ file: File; contentHash: string }[]>([]);
   const [retained, setRetained] = useState(editing?.attachments ?? (editing?.attachment ? [editing.attachment] : []));
   const [checking, setChecking] = useState(false);
+  const submitting = useRef(false);
   const imageInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   async function addFiles(selected: FileList | null) {
@@ -59,9 +60,11 @@ export default function NoteComposer({ boardId, parent, editing, onClose, onSubm
     finally { setChecking(false); }
   }
   const board = departments.find(department => department.boardId === destination);
+  const canSubmit = !busy && !checking && !!text.trim() && (editing || mode === 'board' || recipients.length > 0);
   return <Modal title={editing ? 'Редактировать записку' : parent ? 'Ответить стикером' : 'Новый стикер'} onClose={onClose}>
     <form onSubmit={async event => {
-      event.preventDefault(); if (!text.trim()) return;
+      event.preventDefault(); if (!canSubmit || submitting.current) return;
+      submitting.current = true;
       setBusy(true); setError('');
       try { await onSubmit({ id: editing?.id ?? id, text: text.trim(), boardId: destination,
         files: files.map(item => item.file),
@@ -69,7 +72,7 @@ export default function NoteComposer({ boardId, parent, editing, onClose, onSubm
         ...(mode === 'employees' ? { recipientEmployeeIds: recipients } : {}),
         ...(mode === 'departments' ? { recipientDepartmentIds: recipients } : {}) }); }
       catch (failure) { setError(failure instanceof Error ? failure.message : 'Не удалось сохранить записку'); }
-      finally { setBusy(false); }
+      finally { submitting.current = false; setBusy(false); }
     }}>
       <div className="composer-author"><Avatar employee={currentEmployee} /><div><strong>{currentEmployee.name}</strong><span>{departments.find(item => item.id === currentEmployee.department)?.name ?? 'Сотрудник'}</span></div></div>
       {parent ? <blockquote><span>В ответ на записку · {parent.authorSnapshot?.name ?? employees[parent.authorId]?.name ?? 'Сотрудник'}</span>{parent.text}</blockquote>
@@ -79,7 +82,13 @@ export default function NoteComposer({ boardId, parent, editing, onClose, onSubm
       </select></label>{mode !== 'board' && <fieldset className="department-checks recipient-checks"><legend>{mode === 'employees' ? 'Сотрудники-получатели' : 'Отделы-получатели'}</legend>
         {(mode === 'employees' ? Object.values(employees).filter(employee => employee.isActive !== false).map(employee => ({ id: employee.id, name: employee.name })) : departments.filter(department => !department.isGeneral)).map(person => <label key={person.id}><input type="checkbox" checked={recipients.includes(person.id)} onChange={event => setRecipients(previous => event.target.checked ? [...previous, person.id] : previous.filter(id => id !== person.id))} />{person.name}</label>)}
       </fieldset>}</>}
-      <label className="form-field">{parent ? 'Ваш ответ' : 'Текст записки'}<textarea autoFocus value={text} onChange={event => setText(event.target.value)} placeholder="Что хотите передать коллегам?" required maxLength={2000} rows={6} /></label>
+      <label className="form-field">{parent ? 'Ваш ответ' : 'Текст записки'}<textarea autoFocus value={text} onChange={event => setText(event.target.value)} onKeyDown={event => {
+        if (!editing && event.key === 'Enter' && event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey && !event.repeat && !event.nativeEvent.isComposing) {
+          event.preventDefault();
+          if (canSubmit) event.currentTarget.form?.requestSubmit();
+        }
+      }} placeholder="Что хотите передать коллегам?" required maxLength={2000} rows={6} aria-describedby={editing ? undefined : 'composer-keyboard-hint'} /></label>
+      {!editing && <small id="composer-keyboard-hint">Ctrl+Enter — отправить</small>}
       <div className="composer-attachments">
         <div className="attachment-picker-buttons"><button type="button" className="secondary-button" disabled={busy || checking} onClick={() => imageInput.current?.click()}><Image size={16} />Изображение</button><button type="button" className="secondary-button" disabled={busy || checking} onClick={() => fileInput.current?.click()}><Paperclip size={16} />Файл</button></div>
         <input ref={imageInput} type="file" hidden multiple disabled={busy || checking} accept=".jpg,.jpeg,.png,.gif,.webp" aria-label="Прикрепить изображения" onChange={event => { void addFiles(event.target.files); event.target.value = ''; }} />
@@ -92,7 +101,7 @@ export default function NoteComposer({ boardId, parent, editing, onClose, onSubm
         <small>До 5 файлов · по 10 МБ · всего до 25 МБ</small>
       </div>
       {error && <p role="alert" className="account-error">{error}</p>}
-      <div className="composer-bottom"><span>{text.length} / 2000</span><button type="submit" className="primary-button" disabled={busy || checking || !text.trim() || (!editing && mode !== 'board' && !recipients.length)}><Pin size={16} />{busy ? 'Сохраняем…' : editing ? 'Сохранить' : 'Закрепить'}</button></div>
+      <div className="composer-bottom"><span>{text.length} / 2000</span><button type="submit" className="primary-button" disabled={!canSubmit}><Pin size={16} />{busy ? 'Сохраняем…' : editing ? 'Сохранить' : 'Закрепить'}</button></div>
     </form>
   </Modal>;
 }
